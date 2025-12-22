@@ -11,19 +11,35 @@ NC='\033[0m' # No Color
 
 # Fonction pour afficher les logs
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}[INFO]${NC} $1" >&2
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
 log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
+}
+
+# Fonction pour afficher un spinner pendant une opération longue
+show_spinner() {
+    local pid=$1
+    local message=$2
+    local spin='-\|/'
+    local i=0
+    
+    echo -n "$message " >&2
+    while kill -0 $pid 2>/dev/null; do
+        i=$(( (i+1) %4 ))
+        printf "\r$message ${spin:$i:1}" >&2
+        sleep 0.1
+    done
+    printf "\r$message ✓\n" >&2
 }
 
 # Vérifier les prérequis
@@ -70,7 +86,7 @@ get_required_php_version() {
     # Créer un conteneur temporaire pour récupérer les infos de composer.json
     local temp_dir=$(mktemp -d)
     
-    # Télécharger Laravel dans un conteneur temporaire
+    # Télécharger Laravel dans un conteneur temporaire (sans logs)
     docker run --rm -v "$temp_dir:/app" composer:latest create-project --prefer-dist laravel/laravel /app --no-interaction --quiet 2>/dev/null || true
     
     # Lire les requirements PHP depuis composer.json
@@ -81,6 +97,8 @@ get_required_php_version() {
         if [ ! -z "$php_req" ]; then
             local php_version=$(echo "$php_req" | grep -oP '\d+\.\d+' | head -1)
             rm -rf "$temp_dir"
+            # Retourner uniquement la version sans logs
+            echo "$php_version" >&2
             echo "$php_version"
             return
         fi
@@ -239,8 +257,13 @@ create_laravel_project() {
     
     log_info "Création du projet Laravel '$project_name'..."
     
-    # Créer le projet avec Composer via Docker
-    docker run --rm -v "$project_path:/app" composer:latest create-project --prefer-dist laravel/laravel /app
+    # Créer le projet avec Composer via Docker (en arrière-plan pour le spinner)
+    (docker run --rm -v "$project_path:/app" composer:latest create-project --prefer-dist laravel/laravel /app > /dev/null 2>&1) &
+    local docker_pid=$!
+    
+    show_spinner $docker_pid "Installation de Laravel en cours"
+    
+    wait $docker_pid
     
     log_success "Projet Laravel créé"
 }
@@ -317,8 +340,9 @@ main() {
     local laravel_version=$(get_latest_laravel_version)
     log_success "Version Laravel: $laravel_version"
     
-    # Récupérer la version PHP requise
-    local php_version=$(get_required_php_version "$laravel_version")
+    # Récupérer la version PHP requise (capture proprement sans logs)
+    local php_version
+    php_version=$(get_required_php_version "$laravel_version" 2>/dev/null | tail -1)
     log_success "Version PHP déterminée: $php_version"
     
     # Créer le projet Laravel
