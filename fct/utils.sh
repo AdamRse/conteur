@@ -6,34 +6,34 @@ C_INFO='\033[0;34m'
 C_END='\033[0m' # Balise de fin de couleur
 
 lout(){
-    local message = $1
+    local message=$1
     [ -z "$message" ] && echo "lout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_INFO}[INFO]${C_END} $message"
 }
 sout(){
-    local message = $1
+    local message=$1
     [ -z "$message" ] && echo "sout() : Aucun paramètre passé pour message" >&2
-    echo -e "${C_SUCCESS}[SUCCESS]${C_END} $message"
+    echo -e "${C_SUCCESS}[SUCCESS]${C_END} $message ${C_SUCCESS}✓${C_END}"
 }
 wout(){
-    local message = $1
+    local message=$1
     [ -z "$message" ] && echo "wout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_WARNING}[WARNING]${C_END} $message" >&2
 }
 fout(){
-    local message = $1
+    local message=$1
     [ -z "$message" ] && echo "fout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_ERROR}[FAIL]${C_END} $message" >&2
 }
 eout(){
-    local message = $1
+    local message=$1
     [ -z "$message" ] && echo "eout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_ERROR}[ERROR]${C_END} $message" >&2
     exit 1
 }
 debug_(){
     if $debug_mode; then
-        local message = $1
+        local message=$1
         [ -z "$message" ] && echo "debug_() : Aucun paramètre passé pour message" >&2
         echo -e "[DEBUG] $message"
     fi
