@@ -22,6 +22,9 @@ check_packages_requirements
 # Check set project directory
 if [ -n "$PJ" ]; then
     debug_ "Dev architecture détectée"
+    if [ ! -d "${PJ}" ]; then
+        wout "Le répertoire ${PJ} n'existe pas"
+    fi
     project_dir="$PJ"
 fi
 debug_ "Répertoire du projet dans ${project_dir}"

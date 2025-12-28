@@ -1,36 +1,43 @@
 # Couleurs pour les logs
-C_ERROR='\033[0;31m'
-C_SUCCESS='\033[0;32m'
-C_WARNING='\033[1;33m'
-C_INFO='\033[0;34m'
+C_ERROR='\e[38;5;9m'      # Rouge vif
+C_SUCCESS='\e[38;5;118m'     # Vert vif
+C_WARNING='\e[38;5;220m'    # Jaune vif
+C_INFO='\e[38;5;75m'        # Bleu fixe
+C_PARAM='\e[38;5;219m'       # Cyan clair
 C_END='\033[0m' # Balise de fin de couleur
 
+# Log standard
 lout(){
     local message=$1
     [ -z "$message" ] && echo "lout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_INFO}[INFO]${C_END} $message"
 }
+# Success
 sout(){
     local message=$1
     [ -z "$message" ] && echo "sout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_SUCCESS}[SUCCESS]${C_END} $message ${C_SUCCESS}✓${C_END}"
 }
+# Warning, le script continue
 wout(){
     local message=$1
     [ -z "$message" ] && echo "wout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_WARNING}[WARNING]${C_END} $message" >&2
 }
+# Fail, erreur mais le script continue
 fout(){
     local message=$1
     [ -z "$message" ] && echo "fout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_ERROR}[FAIL]${C_END} $message" >&2
 }
+# Erreur, arrête le script
 eout(){
     local message=$1
     [ -z "$message" ] && echo "eout() : Aucun paramètre passé pour message" >&2
     echo -e "${C_ERROR}[ERROR]${C_END} $message" >&2
     exit 1
 }
+# Uniquement affiché en mode debug
 debug_(){
     if $debug_mode; then
         local message=$1
@@ -38,23 +45,43 @@ debug_(){
         echo -e "[DEBUG] $message"
     fi
 }
+# Question fermée attend une réponse
+ask_yn () {
+    if [ -z "$1" ]; then
+        echo -e "fonction ask_yn() : Aucun paramètre passé" >&2
+        exit 1
+    fi
+
+    while true; do
+        echo -ne "${C_PARAM}[PARAM]${C_END} $1 (o/n)"
+        read -n 1 -p "" response
+        echo ""
+        # Vérification de la réponse
+        if [[ $response == "o" || $response == "O" ]]; then
+            return 0
+        elif [[ $response == "n" || $response == "N" ]]; then
+            return 1
+        else
+            wout "'$response' : Réponse invalide. Veuillez entrer 'o' (Oui) ou 'n' (Non)."
+        fi
+    done
+}
+
 
 #############################
 
 check_packages_requirements() {
-    lout "Vérification des prérequis..."
+    lout "Vérification des dépendances..."
     
     if ! command -v docker &> /dev/null; then
         eout "Docker n'est pas installé"
     fi
-    
     if ! command -v curl &> /dev/null; then
         eout "curl n'est pas installé"
     fi
-    
     if ! command -v jq &> /dev/null; then
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
     
-    sout "Tous les prérequis sont satisfaits"
+    sout "Toutes les dépendances sont satisfaites"
 }
