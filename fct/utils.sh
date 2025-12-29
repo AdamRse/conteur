@@ -68,11 +68,9 @@ ask_yn () {
 }
 
 
-#############################
+############################# create-project
 
 check_packages_requirements() {
-    lout "Vérification des dépendances..."
-    
     if ! command -v docker &> /dev/null; then
         eout "Docker n'est pas installé"
     fi
@@ -82,6 +80,26 @@ check_packages_requirements() {
     if ! command -v jq &> /dev/null; then
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
+}
+
+get_json_latest_laravel_info() {
+    local packagist_link="https://repo.packagist.org/p2/laravel/laravel.json"
     
-    sout "Toutes les dépendances sont satisfaites"
+    # Récupérer et traduire la réponse JSON
+    local json_response=$(curl -s --max-time 10 "${packagist_link}" | jq -r '
+        .packages."laravel/laravel"[0] as $p |
+        {
+            "laravel_version": $p.version_normalized,
+            "php_version": ($p.require.php // "" | sub("^\\^"; ""))
+        }
+    ')
+
+    if [ $(jq -r ".laravel_version" <<< $json_response) = "" ] ||
+    [ $(jq -r ".php_version" <<< $json_response) = "" ]; then
+        fout "Échec de récupération des infos sur la dernière version de laravel"
+        return 1
+    else
+        echo $json_response
+        return 0
+    fi
 }
