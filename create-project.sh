@@ -34,5 +34,5 @@ debug_ "Répertoire du projet dans ${project_dir}"
 debug_ "Nouveau projet ${project_type}"
 
 
-# -- MAIN
+# -- MAIN --
 lout "Récupération des infos sur la dernière version de laravel via packagist.org"
