@@ -70,6 +70,7 @@ ask_yn () {
 
 ############################# create-project
 
+# return null|string
 check_packages_requirements() {
     if ! command -v docker &> /dev/null; then
         eout "Docker n'est pas installé"
@@ -82,6 +83,8 @@ check_packages_requirements() {
     fi
 }
 
+# return string|bool
+# En cas de réussite il est certain qu'on retourne une version laravel et php
 get_json_latest_laravel_info() {
     local packagist_link="https://repo.packagist.org/p2/laravel/laravel.json"
     
@@ -94,12 +97,12 @@ get_json_latest_laravel_info() {
         }
     ')
 
-    if [ $(jq -r ".laravel_version" <<< $json_response) = "" ] ||
-    [ $(jq -r ".php_version" <<< $json_response) = "" ]; then
-        fout "Échec de récupération des infos sur la dernière version de laravel"
-        return 1
-    else
+    local version_regex='^[0-9]+(\.[0-9]+)*$'
+    if [[ "$(jq -r ".laravel_version" <<< "$json_response")" =~ $version_regex ]] && [[ "$(jq -r ".php_version" <<< "$json_response")" =~ $version_regex ]]; then
         echo $json_response
         return 0
+    else
+        fout "Échec de récupération des infos sur la dernière version de laravel"
+        return 1
     fi
 }
