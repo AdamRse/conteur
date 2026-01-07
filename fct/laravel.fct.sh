@@ -1,4 +1,5 @@
 # Prépare les variables et vérifie les fichiers de configuration
+# return null
 laravel_set_requirments() {
     dockerfile_template_path="${script_dir}/templates/laravel/Dockerfile.template"
     [ -f "${dockerfile_template_path}" ] || eout "Dockerfile laravel non trouvé. Fichier attendu : ${dockerfile_template_path}"
