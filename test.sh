@@ -13,6 +13,12 @@ source "${script_dir}/fct/laravel.fct.sh"
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
+# laravel_check_requirments
+
+# laravel_create_dockerfile
+
+echo $0
+
 # lout "lout"
 # sout "sout"
 # wout "wout"
