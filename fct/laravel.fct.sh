@@ -1,28 +1,36 @@
-# -- CHECKS --
-
-[ -d "${script_dir}" ] || eout "fct/laravel.fct.sh : La variable 'script_dir' doit être initialisée avant l'appel de laravel.fct.sh"
-[ -n "${project_path}" ] || eout "fct/laravel.fct.sh : La variable 'project_path' doit être initialisée avant l'appel de laravel.fct.sh"
-
 # -- LARAVEL VARS --
 
+laravel_script_name=$(basename $0)
+
+# templates
 dockerfile_template_path="${script_dir}/templates/laravel/Dockerfile.template"
-docker-compose_template_path="${script_dir}/templates/laravel/docker-compose.yml.template"
+docker_compose_template_path="${script_dir}/templates/laravel/docker-compose.yml.template"
 nginx_template_path="${script_dir}/templates/laravel/nginx.template"
-laravel_docker_dir="${project_path}/.docker"
+
+# fichiers du projet
+project_docker_dir="${project_path}/.docker/development"
+project_dockerfile_path="${project_docker_dir}/Dockerfile"
+
+# versions
+php_version=""
+laravel_version=""
 
 # -- FUNCTIONS --
 
 # Prépare les variables et vérifie les fichiers de configuration
 # return null
 laravel_check_requirments() {
-    [ -f "${dockerfile_template_path}" ] || eout "Template Dockerfile non trouvé. Fichier attendu : ${dockerfile_template_path}"
-    [ -f "${compose_template_path}" ] || eout "Template docker-compose non trouvé. Fichier attendu : ${compose_template_path}"
-    [ -f "${nginx_template_path}" ] || eout "Template nginx laravel non trouvé. Fichier attendu : ${nginx_template_path}"
-    debug_ "Templates trouvés"
+    [ -d "${script_dir}" ] || eout "La variable 'script_dir' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${project_path}" ] || eout "La variable 'project_path' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -f "${dockerfile_template_path}" ] || eout "Template dockerfile non trouvé dans ${dockerfile_template_path}"
+    [ -f "${nginx_template_path}" ] || eout "Template de configuration nginx non trouvé dans ${nginx_template_path}"
+    [ -f "${docker_compose_template_path}" ] || eout "Template docker-compose non trouvé dans ${docker_compose_template_path}"
+    [ -n "${php_version}" ] || eout "La variable 'php_version' doit être initialisée"
+    [ -n "${laravel_version}" ] || eout "La variable 'laravel_version' doit être initialisée"
 }
 
 # En cas de réussite il est certain qu'on retourne une version laravel et php
-# return string|bool
+# return array+true|false
 laravel_get_json_latest_info() {
     local packagist_link="https://repo.packagist.org/p2/laravel/laravel.json"
     
@@ -46,20 +54,19 @@ laravel_get_json_latest_info() {
 }
 
 laravel_create_dockerfile() {
-    local template_file="templates/laravel/Dockerfile.template"
-    local output_file="$project_path/.docker/Dockerfile"
+    local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && debug_ "Chemin du dockerfile modifié pour $project_dockerfile_path"
     
     # Copier le template et remplacer les variables
     sed -e "s/\${PHP_VERSION}/$php_version/g" \
         -e "s/\${PROJECT_NAME}/$project_name/g" \
-        "$template_file" > "$output_file"
+        "$dockerfile_template_path" > "${project_dockerfile_path}"
     
-    echo "✓ Dockerfile créé dans $output_file"
+    sout "✓ Dockerfile créé dans $dockerfile_path"
 }
 
 laravel_create_docker_compose() {
     local template_file="templates/laravel/docker-compose.yml.template"
-    local output_file="$project_path/docker-compose.yml"
+    local dockerfile_path="$project_path/docker-compose.yml"
     
     # Vérifier que le template existe
     if [[ ! -f "$template_file" ]]; then
@@ -71,9 +78,9 @@ laravel_create_docker_compose() {
     sed -e "s/\${PHP_VERSION}/$php_version/g" \
         -e "s/\${PROJECT_NAME}/$project_name/g" \
         -e "s/\${LARAVEL_VERSION}/$laravel_version/g" \
-        "$template_file" > "$output_file"
+        "${dockerfile_template_path}" > "$dockerfile_path"
     
-    echo "✓ docker-compose.yml créé dans $output_file"
+    echo "✓ docker-compose.yml créé dans $dockerfile_path"
 }
 
 laravel_create_nginx_config() {
@@ -111,3 +118,16 @@ laravel_create_project() {
     echo "  cd $project_path"
     echo "  docker compose up -d"
 }
+
+# -- MAIN --
+
+# Récupération des infos de laravel/latest
+lout "Récupération des infos sur la dernière version de laravel via packagist.org"
+if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
+    eout "La récupération des exigeances laravel a échouée. Abandon..."
+fi
+php_version=$(jq -r '.php_version' <<< $laravel_latest_requirements)
+laravel_version=$(jq -r '.laravel_version' <<< $laravel_latest_requirements)
+sout "Version trouvées, laravel ${laravel_version} et PHP ${php_version}"
+
+laravel_check_requirments

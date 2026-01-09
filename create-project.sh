@@ -39,16 +39,6 @@ debug_ "Nouveau projet ${project_type}"
 if [ $project_type = "Laravel" ]; then
     lout "Vérification des fichiers de configuration laravel"
     laravel_check_requirments
-    
-    lout "Récupération des infos sur la dernière version de laravel via packagist.org"
-
-    if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
-        eout "La récupération des exigeances laravel a échouée. Abandon..."
-    fi
-    php_version=$(jq -r '.php_version' <<< $laravel_latest_requirements)
-    laravel_version=$(jq -r '.laravel_version' <<< $laravel_latest_requirements)
-
-    sout "Version trouvées, laravel ${laravel_version} et PHP ${php_version}"
 
     lout "Création du projet avec docker"
 else

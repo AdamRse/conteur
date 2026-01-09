@@ -19,7 +19,7 @@ debug_ "DEBUG MODE ON"
 
 # laravel_check_requirments
 
-# laravel_create_dockerfile
+laravel_create_dockerfile
 
 echo $0
 
