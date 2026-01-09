@@ -5,6 +5,10 @@ script_dir=$(dirname "$script_path")
 
 DEBUG_MODE=true
 
+project_dir="$PWD"
+project_name="conteur"
+project_path="$PJ"
+
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
 source "${script_dir}/fct/laravel.fct.sh"
