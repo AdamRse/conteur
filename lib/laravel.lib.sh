@@ -54,7 +54,12 @@ laravel_get_json_latest_info() {
 }
 
 laravel_create_dockerfile() {
-    local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && debug_ "Chemin du dockerfile modifié pour $project_dockerfile_path"
+    local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && debug_ "ATTENTION Chemin du dockerfile modifié pour $project_dockerfile_path"
+
+    if [ -f "${project_dockerfile_path}" ]; then
+        wout "Dockerfile détecté dans '${project_dockerfile_path}'"
+        ask_yn "Faut-il écraser le Dockerfile existant ?"
+    fi
     
     # Copier le template et remplacer les variables
     sed -e "s/\${PHP_VERSION}/$php_version/g" \
@@ -104,19 +109,15 @@ laravel_create_nginx_config() {
 }
 
 laravel_create_project() {
-    echo "Création des fichiers Docker pour le projet Laravel..."
+    lout "Création des fichiers Docker pour le projet Laravel..."
 
     # ICI CREER LE PROJET AVEC DOCKER
     
     laravel_create_dockerfile
-    laravel_create_docker_compose
-    laravel_create_nginx_config
+    # laravel_create_docker_compose
+    # laravel_create_nginx_config
     
-    echo "✓ Tous les fichiers Docker ont été créés avec succès"
-    echo ""
-    echo "Pour démarrer le projet :"
-    echo "  cd $project_path"
-    echo "  docker compose up -d"
+    sout "✓ Tous les fichiers Docker ont été créés avec succès"
 }
 
 # -- MAIN --
@@ -130,4 +131,6 @@ php_version=$(jq -r '.php_version' <<< $laravel_latest_requirements)
 laravel_version=$(jq -r '.laravel_version' <<< $laravel_latest_requirements)
 sout "Version trouvées, laravel ${laravel_version} et PHP ${php_version}"
 
+lout "Vérification du contenu des variables"
 laravel_check_requirments
+

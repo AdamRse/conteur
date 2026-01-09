@@ -11,7 +11,7 @@ project_path="$PJ"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
-source "${script_dir}/fct/laravel.fct.sh"
+source "${script_dir}/lib/laravel.lib.sh"
 
 
 # Tests de fonctions
@@ -19,9 +19,7 @@ debug_ "DEBUG MODE ON"
 
 # laravel_check_requirments
 
-laravel_create_dockerfile
-
-echo $0
+laravel_create_project
 
 # lout "lout"
 # sout "sout"

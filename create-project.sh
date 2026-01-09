@@ -11,7 +11,6 @@ project_path=false
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
-source "${script_dir}/fct/laravel.fct.sh"
 
 # -- CHECKS --
 
@@ -31,16 +30,12 @@ debug_ "Répertoire du projet dans ${project_dir}"
 project_path="${project_dir}/${project_name}"
 debug_ "Projet dans ${project_path}"
 
-
 debug_ "Nouveau projet ${project_type}"
-
 
 # -- MAIN --
 if [ $project_type = "Laravel" ]; then
-    lout "Vérification des fichiers de configuration laravel"
-    laravel_check_requirments
-
-    lout "Création du projet avec docker"
+    source "${script_dir}/lib/laravel.lib.sh"
+    laravel_create_project
 else
     eout "Type de projet non supporté (${project_type})"
 fi
