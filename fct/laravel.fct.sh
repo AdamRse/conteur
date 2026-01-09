@@ -1,6 +1,5 @@
 # -- CHECKS --
 
-# test
 [ -d "${script_dir}" ] || eout "fct/laravel.fct.sh : La variable 'script_dir' doit être initialisée avant l'appel de laravel.fct.sh"
 [ -n "${project_path}" ] || eout "fct/laravel.fct.sh : La variable 'project_path' doit être initialisée avant l'appel de laravel.fct.sh"
 
