@@ -9,6 +9,9 @@ check_packages_requirements() {
     if ! command -v jq &> /dev/null; then
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
+    if ! command -v envsubst >/dev/null 2>&1; then
+        eout "envsubst n'est pas disponible. Installez-le avec : sudo apt install gettext-base"
+    fi
 }
 
 # return null

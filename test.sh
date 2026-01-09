@@ -17,9 +17,8 @@ source "${script_dir}/lib/laravel.lib.sh"
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
-# laravel_check_requirments
-
 laravel_create_project
+
 
 # lout "lout"
 # sout "sout"
