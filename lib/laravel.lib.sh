@@ -10,10 +10,13 @@ nginx_template_path="${script_dir}/templates/laravel/nginx.template"
 # fichiers du projet
 project_docker_dir="${project_path}/.docker/development"
 project_dockerfile_path="${project_docker_dir}/Dockerfile"
+project_docker_compose_path="${project_path}/docker-compose.yml"
+project_nginx_path="${project_docker_dir}/nginx.conf"
 
 # variables export pour template
 export PHP_VERSION=""
 export LARAVEL_VERSION=""
+export PROJECT_NAME=${project_name}
 
 # -- FUNCTIONS --
 
@@ -22,6 +25,7 @@ export LARAVEL_VERSION=""
 laravel_check_requirments() {
     [ -d "${script_dir}" ] || eout "La variable 'script_dir' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${project_path}" ] || eout "La variable 'project_path' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${project_name}" ] || eout "La variable 'project_name' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -f "${dockerfile_template_path}" ] || eout "Template dockerfile non trouvé dans ${dockerfile_template_path}"
     [ -f "${nginx_template_path}" ] || eout "Template de configuration nginx non trouvé dans ${nginx_template_path}"
     [ -f "${docker_compose_template_path}" ] || eout "Template docker-compose non trouvé dans ${docker_compose_template_path}"
@@ -55,11 +59,12 @@ laravel_get_json_latest_info() {
 
 # return bool
 laravel_create_dockerfile() {
-    #Optionel, à supprimer en prod
+    # Test, à supprimer en prod, pour créer le fichier dans l'environement de test --------------------
     if $DEBUG_MODE; then
         local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && debug_ "ATTENTION DEBUG MODE : Chemin du dockerfile modifié pour $project_dockerfile_path\
-        Le dockerfile ne sera pas créé dans le projet, retirer cette contition pune fois le debug fini"
+        Le dockerfile ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
+    # -------------------------------------------------------------------------------------------------
 
     lout "Création du dockerfile (${project_dockerfile_path})"
     if [ -f "${project_dockerfile_path}" ]; then
@@ -67,33 +72,37 @@ laravel_create_dockerfile() {
         ask_yn "Faut-il écraser le Dockerfile existant ?"
     fi
 
-    if envsubst '$PHP_VERSION' < "$dockerfile_template_path" > "$project_dockerfile_path"; then
-        sout "Dockerfile créé dans $dockerfile_path"
+    if envsubst '$PHP_VERSION' < "$dockerfile_template_path" > "$project_dockerfile_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
+        sout "Dockerfile créé dans $project_dockerfile_path"
         return 0
     else
-        fout "${laravel_script_name} laravel_create_dockerfile() : envsubst n'a pas pu créer le Dockerfile à partir du template"
+        fout "${laravel_script_name} laravel_create_dockerfile() : envsubst n'a pas pu créer le Dockerfile à partir du template ${dockerfile_template_path}"
         return 1
     fi
     
 }
 
 laravel_create_docker_compose() {
-    local template_file="templates/laravel/docker-compose.yml.template"
-    local dockerfile_path="$project_path/docker-compose.yml"
-    
-    # Vérifier que le template existe
-    if [[ ! -f "$template_file" ]]; then
-        echo "Erreur: Le template $template_file n'existe pas"
+    # Test, à supprimer en prod, pour créer le fichier dans l'environement de test --------------------
+    if $DEBUG_MODE; then
+        local project_docker_compose_path="/home/adam/dev/projets/conteur/docker-compose.yml" && debug_ "ATTENTION DEBUG MODE : Chemin du docker-compose modifié pour $project_docker_compose_path\
+        Le docker-compose ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
+    fi
+    # -------------------------------------------------------------------------------------------------
+
+    lout "Création du dockerfile (${project_docker_compose_path})"
+    if [ -f "${project_docker_compose_path}" ]; then
+        wout "docker-compose.yml détecté dans '${project_docker_compose_path}'"
+        ask_yn "Faut-il écraser le docker-compose.yml existant ?"
+    fi
+
+    if envsubst '$PHP_VERSION $PROJECT_NAME $LARAVEL_VERSION' < "$docker_compose_template_path" > "$project_docker_compose_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
+        sout "docker-compose.yml créé dans $project_docker_compose_path"
+        return 0
+    else
+        fout "${laravel_script_name} laravel_create_docker_compose() : envsubst n'a pas pu créer le docker-compose.yml à partir du template ${docker_compose_template_path}"
         return 1
     fi
-    
-    # Copier le template et remplacer les variables
-    sed -e "s/\${PHP_VERSION}/$PHP_VERSION/g" \
-        -e "s/\${PROJECT_NAME}/$project_name/g" \
-        -e "s/\${LARAVEL_VERSION}/$LARAVEL_VERSION/g" \
-        "${dockerfile_template_path}" > "$dockerfile_path"
-    
-    echo "docker-compose.yml créé dans $dockerfile_path"
 }
 
 laravel_create_nginx_config() {
@@ -121,7 +130,7 @@ laravel_create_project() {
 
     # ICI CREER LE PROJET AVEC DOCKER
     
-    laravel_create_dockerfile
+    #laravel_create_dockerfile
     # laravel_create_docker_compose
     # laravel_create_nginx_config
     
