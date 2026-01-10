@@ -1,0 +1,1 @@
+laravel.lib.sh : create_project() non fini, il faut appeler la commaned docker pour créer le projet laravel

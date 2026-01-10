@@ -1,7 +1,8 @@
 #!/bin/bash
 
 DEBUG_MODE=true
-project_type="Laravel" # DEBUG, à remplacer par une ption
+project_type="laravel"  # DEBUG, à remplacer par une option
+                        # DOIT CORRESPONDRE À UN RÉPERTOIRE DANS ./templates/$project_type/ ET DANS lib/$project_type.lib.sh
 
 script_path=$(readlink -f "$0")
 script_dir=$(dirname "$script_path")
@@ -30,12 +31,16 @@ debug_ "Répertoire du projet dans ${project_dir}"
 project_path="${project_dir}/${project_name}"
 debug_ "Projet dans ${project_path}"
 
-debug_ "Nouveau projet ${project_type}"
+check_project_type
+debug_ "Type de projet '${project_type}' validé"
 
 # -- MAIN --
-if [ $project_type = "Laravel" ]; then
-    source "${script_dir}/lib/laravel.lib.sh"
-    laravel_create_project
-else
-    eout "Type de projet non supporté (${project_type})"
+
+library="${project_type}.lib.sh"
+source "${script_dir}/lib/${library}"
+if ! create_project; then # Polymorphisme de la bibliothèque importée au dessus
+    eout "La fonction create_project() de la bibliothèque interne '${library}' n'existe pas."
 fi
+
+sout "Projet ${project_type} créé dans '${project_dir}' !"
+lout "Pour lancer le projet : utilsier la commande : 'docker compose up' à la racine du projet."

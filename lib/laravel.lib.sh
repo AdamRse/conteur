@@ -61,8 +61,8 @@ laravel_get_json_latest_info() {
 laravel_create_dockerfile() {
     # Test, à supprimer en prod, pour créer le fichier dans l'environement de test --------------------
     if $DEBUG_MODE; then
-        local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && debug_ "ATTENTION DEBUG MODE : Chemin du dockerfile modifié pour $project_dockerfile_path\
-        Le dockerfile ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
+        local project_dockerfile_path="/home/adam/dev/projets/conteur/Dockerfile" && wout "ATTENTION DEBUG MODE : Chemin du dockerfile modifié pour $project_dockerfile_path\
+        \n\tLe dockerfile ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
     # -------------------------------------------------------------------------------------------------
 
@@ -85,8 +85,8 @@ laravel_create_dockerfile() {
 laravel_create_docker_compose() {
     # Test, à supprimer en prod, pour créer le fichier dans l'environement de test --------------------
     if $DEBUG_MODE; then
-        local project_docker_compose_path="/home/adam/dev/projets/conteur/docker-compose.yml" && debug_ "ATTENTION DEBUG MODE : Chemin du docker-compose modifié pour $project_docker_compose_path\
-        Le docker-compose ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
+        local project_docker_compose_path="/home/adam/dev/projets/conteur/docker-compose.yml" && wout "ATTENTION DEBUG MODE : Chemin du docker-compose modifié pour $project_docker_compose_path\
+        \n\tLe docker-compose ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
     # -------------------------------------------------------------------------------------------------
 
@@ -106,33 +106,38 @@ laravel_create_docker_compose() {
 }
 
 laravel_create_nginx_config() {
-    local template_file="templates/laravel/nginx.template"
-    local output_file="$project_path/.docker/nginx.conf"
-    
-    # Créer le répertoire .docker s'il n'existe pas
-    mkdir -p "$project_path/.docker"
-    
-    # Vérifier que le template existe
-    if [[ ! -f "$template_file" ]]; then
-        echo "Avertissement: Le template $template_file n'existe pas, nginx.conf non créé"
-        return 0
+    # Test, à supprimer en prod, pour créer le fichier dans l'environement de test --------------------
+    if $DEBUG_MODE; then
+        local project_nginx_path="/home/adam/dev/projets/conteur/nginx.conf" && wout "ATTENTION DEBUG MODE : Chemin du fichier de configuration nginx modifié pour $project_docker_compose_path\
+        \n\tLe fichier de configuration nginx ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
-    
-    # Copier le template et remplacer les variables
-    sed -e "s/\${PROJECT_NAME}/$project_name/g" \
-        "$template_file" > "$output_file"
-    
-    echo "nginx.conf créé dans $output_file"
+    # -------------------------------------------------------------------------------------------------
+
+    lout "Création du dockerfile (${project_nginx_path})"
+    if [ -f "${project_nginx_path}" ]; then
+        wout "nginx.conf détecté dans '${project_nginx_path}'"
+        ask_yn "Faut-il écraser le fichier de configuration nginx existant ?"
+    fi
+
+    if envsubst '$PROJECT_NAME' < "$nginx_template_path" > "$project_nginx_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
+        sout "fichier de configuration nginx créé dans $project_nginx_path"
+        return 0
+    else
+        fout "${laravel_script_name} laravel_create_docker_compose() : envsubst n'a pas pu créer le fichier de configuration nginx à partir du template ${project_nginx_path}"
+        return 1
+    fi
 }
 
-laravel_create_project() {
+# FONCTION create_project() OBLIGATOIRE DANS TOUTES LES LIBS (POLYMORPHISME), LE SCRIPT PRINCIPAL APPELLE CETTE FONCTION
+# SANS RETOURNER DE TRUE/FALSE
+create_project() {
     lout "Création des fichiers Docker pour le projet Laravel..."
 
-    # ICI CREER LE PROJET AVEC DOCKER
+    # ICI CREER LE PROJET AVEC DOCKER !!!
     
-    #laravel_create_dockerfile
-    # laravel_create_docker_compose
-    # laravel_create_nginx_config
+    laravel_create_dockerfile
+    laravel_create_docker_compose
+    laravel_create_nginx_config
     
     sout "Tous les fichiers Docker ont été créés avec succès"
 }
