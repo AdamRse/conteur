@@ -28,26 +28,68 @@ set_directory() {
 # return bool
 check_project_type() {
     [ -z "$1" ] && eout "check_project_type() : Aucun nom de projet passé."
-    
+
     local $project_name_check = $1
 
     [ -d "${script_dir}/templates/${project_name_check}" ] || eout "Type de projet ${project_name_check} inconnu. Aucun template associé pour ce type de projet."
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
+# return string+true|false
+conf_reader() {
+    local config_file="${1}"
+    local vars=()
+
+    if [[ ! -f "${config_file}" ]]; then
+        fout "Fichier ${config_file} introuvable."
+        return 1
+    fi
+
+    # Lire le fichier ligne par ligne
+    # On cherche les lignes de type NOM="VALEUR" ou NOM=VALEUR
+    # On ignore les commentaires (#) et les lignes vides
+    while IFS='=' read -r key value; do
+        # Nettoyage des espaces et suppression des guillemets éventuels dans la valeur
+        key=$(echo "$key" | tr -d '[:space:]')
+        value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+
+        # 3. Vérifier si la clé n'est pas un commentaire et si la valeur n'est pas vide
+        if [[ -n "$key" && ! "$key" =~ ^# && -n "$value" ]]; then
+            vars+=("$key")
+        fi
+    done < "$config_file"
+
+    echo "${vars[*]}"
+    return 0
+}
+
 # $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
+# return bool
 copy_file_from_template() {
     debug_ "copy_file_from_template() : paramètres passés :\n\t- \$1 : ${1}\n\t- \$2 : ${2}\n\t- \$3 : ${3}"
     local file_name=$1
     local output_dir=$2
     local variables_name=$3
     local destination_file_path="${output_dir}/${file_name}"
+    local envsubst_exported_vars="" # Export des variables et construction de $envsubst_exported_vars pour envsubst# Obtention du template associé à $file_name
+    local template_name_possibilities_by_priority=( # Noms possible des templates à récupérer à partir du nom. PAR ORDRE DE PRIORITÉ
+        "${script_dir}/templates/${project_type}/custom/${file_name}"
+        "${script_dir}/templates/${project_type}/custom/${file_name}.template"
+        "${script_dir}/templates/${project_type}/default/${file_name}.template"
+    )
+    local found_template_path=""
+    local conf_file_path="${script_dir}/templates/${project_type}/variables/${file_name}.conf"
 
     # CHECKS
     [ -z "${file_name}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun nom de fichier donné en premier paramètre."
     [ -z "${output_dir}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun répertoire de sortie donné en deucième paramètre."
+    if [ ! -f "${conf_file_path}" ]; then
+        lout "Fichier de configuration nom trouvé à l'emplacement : ${conf_file_path}"
+        conf_file_path=""
+    fi
+    debug_ "Fichier de configuration : '${conf_file_path}'"
 
     # Vérification de l'existance du répertoire de destination
     if [ ! -d "${output_dir}" ]; then
@@ -59,6 +101,7 @@ copy_file_from_template() {
     fi
 
     # Vérification de l'existance d'un fichier destination
+    debug_ "vérification de ${destination_file_path}"
     if [ -f "${destination_file_path}" ]; then
         wout "${file_name} détecté dans '${output_dir}'"
         if ! ask_yn "La procédure continuera en cas de refus, le fichier ${file_name} sera simplement ignoré. Faut-il écraser le fichier ${file_name} existant ?"; then
@@ -67,25 +110,17 @@ copy_file_from_template() {
         fi
     fi
 
-    # Obtention du template associé à $file_name --
-    local template_name_possibilities_by_priority=(
-        "${script_dir}/templates/${project_type}/custom/${file_name}"
-        "${script_dir}/templates/${project_type}/custom/${file_name}.template"
-        "${script_dir}/templates/${project_type}/default/${file_name}.template"
-    )
-    local found_template_path=""
     for template_path in "${template_name_possibilities_by_priority[@]}"; do
         if [ -f "${template_path}" ]; then
             found_template_path="$template_path"
             debug_ "Template ${found_template_path} trouvé pour le fichier ${file_name}"
             break
         fi
+        debug_ "Template ${template_path}, pas de correspondance avec ${file_name}"
     done
     [ -z "${found_template_path}" ] && eout "copy_file_from_template() : Le nom du fichier donné en premier paramère '${file_name}' n'a aucun template associé dans './templates/${project_type}/custom ou default'. Abandon..."
     # --
 
-    # Export des variables et construction de $envsubst_exported_vars pour envsubst
-    local envsubst_exported_vars=""
     # Si des variables à exporter sont passées en 3ème paramètre, on les exporte et on les intègre dans la chaine qui servira
     if [ -n "${variables_name}" ]; then
         debug_ "export des variables : ${variables_name} pour prise en compte dans le remplacement dynamique du template"
@@ -101,12 +136,20 @@ copy_file_from_template() {
         done
     fi
 
+    # Export des variables trouvées dans templates/$project_type/variables
+
+
     # ÉCRITURE DU TEMPLATE
     lout "Création du fichier ${file_name} dans ${output_dir}"
     if [ -z "${envsubst_exported_vars}" ]; then
         debug_ "Aucune variable dynamique donné, le template sera copié tel quel."
         debug_ "copie de '${found_template_path}' à '${destination_file_path}'"
-        cp "${found_template_path}" "${destination_file_path}"
+        if cp "${found_template_path}" "${destination_file_path}"; then
+            return 0
+        else
+            fout "Impossible de copier le template dans le répertoire de destination. Vérifier les privilèges de '${output_dir}'"
+            return 1
+        fi
     else
         debug_ "Variables dynamiques à rempalcer dans le template : ${envsubst_exported_vars}"
         debug_ "envsubst : copie de '${found_template_path}' à '${destination_file_path}'"
