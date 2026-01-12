@@ -35,32 +35,31 @@ check_project_type() {
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
-# return string+true|false
+# return Array+true|false
 conf_reader() {
     local config_file="${1}"
-    local vars=()
-
-    if [[ ! -f "${config_file}" ]]; then
-        fout "Fichier ${config_file} introuvable."
+    
+    if [[ ! -f "$config_file" ]]; then
+        fout "conf_reader() : Le fichier de configuration '${config_file}' n'est pas trouvable."
         return 1
     fi
 
-    # Lire le fichier ligne par ligne
-    # On cherche les lignes de type NOM="VALEUR" ou NOM=VALEUR
-    # On ignore les commentaires (#) et les lignes vides
-    while IFS='=' read -r key value; do
-        # Nettoyage des espaces et suppression des guillemets éventuels dans la valeur
-        key=$(echo "$key" | tr -d '[:space:]')
-        value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-
-        # 3. Vérifier si la clé n'est pas un commentaire et si la valeur n'est pas vide
-        if [[ -n "$key" && ! "$key" =~ ^# && -n "$value" ]]; then
-            vars+=("$key")
-        fi
-    done < "$config_file"
-
-    echo "${vars[*]}"
-    return 0
+    local vars_found
+    if vars_found=$(bash -c "
+        set -a
+        before_VAR_TO_REMOVE_Za2000pbn=\$(compgen -v)
+        source \"$config_file\" || exit \$?
+        after=\$(compgen -v)
+        # Filtre, et on enlève before_VAR_TO_REMOVE_Za2000pbn qui s'ets incrustée
+        comm -13 <(echo \"\$before_VAR_TO_REMOVE_Za2000pbn\") <(echo \"\$after\") | grep -v 'before_VAR_TO_REMOVE_Za2000pbn' | tr '\n' ' '
+    "); then
+        echo "${vars_found}"
+        return 0
+    else
+        local exit_code=$?
+        fout "conf_reader() : Le fichier '${config_file}' n'a pas pu être interprété par bash, il contient une erreur (exit code : ${exit_code}).\n\t\tLes variables du fichier de configuration ne seront pas appliquées au template."
+        return 1
+    fi
 }
 
 # $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
@@ -131,12 +130,30 @@ copy_file_from_template() {
                 envsubst_exported_vars="\$$var_name ${envsubst_exported_vars}"
                 debug_ "variable \$${var_name} exportée"
             else
-                fout "La variable '$var_name' passée en 3ème paramètre de 'copy_file_from_template()' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez le nom de la variable passée à 'copy_file_from_template()', elle doit comporter une erreur de nom."
+                fout "La variable '${var_name}' passée en 3ème paramètre de 'copy_file_from_template()' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez le nom de la variable passée à 'copy_file_from_template()', elle doit comporter une erreur de nom."
             fi
         done
     fi
 
     # Export des variables trouvées dans templates/$project_type/variables
+    local array_conf_vars=$(conf_reader "${conf_file_path}")
+    if $array_conf_vars; then
+        if [ -n "${array_conf_vars}" ]; then
+            debug_ "export des variables : ${array_conf_vars} (fichier de config) pour prise en compte dans le remplacement dynamique du template"
+            source "${conf_file_path}"
+            for conf_var_name in $array_conf_vars; do
+                if [ -n "${!conf_var_name}" ]; then
+                    export $conf_var_name
+                    envsubst_exported_vars="\$$conf_var_name ${envsubst_exported_vars}"
+                    debug_ "variable \$${conf_var_name} exportée"
+                else
+                    wout "La variable '${conf_var_name}' trouvée dans le fichier de config '${conf_file_path}' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez que la variable ${conf_var_name} ait bien une valeur attachée"
+                fi
+            done
+        fi
+    else
+        fout "Erreur lors de la récupération des variable du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
+    fi 
 
 
     # ÉCRITURE DU TEMPLATE
