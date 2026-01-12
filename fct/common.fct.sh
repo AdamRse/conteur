@@ -80,7 +80,7 @@ copy_file_from_template() {
         "${script_dir}/templates/${project_type}/default/${file_name}.template"
     )
     local found_template_path=""
-    local conf_file_path="${script_dir}/templates/${project_type}/variables/${file_name}.conf"
+    local conf_file_path="${script_dir}/templates/${project_type}/conf/${file_name}.conf"
 
     # CHECKS
     [ -z "${file_name}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun nom de fichier donné en premier paramètre."
@@ -115,10 +115,10 @@ copy_file_from_template() {
     for template_path in "${template_name_possibilities_by_priority[@]}"; do
         if [ -f "${template_path}" ]; then
             found_template_path="$template_path"
-            debug_ "Template ${found_template_path} trouvé pour le fichier ${file_name}"
+            debug_ "Template ${found_template_path} trouvé pour le fichier ${file_name} ✓"
             break
         fi
-        debug_ "Template ${template_path}, pas de correspondance avec ${file_name}"
+        debug_ "Template ${template_path}, pas de correspondance avec ${file_name} ⤫"
     done
     [ -z "${found_template_path}" ] && eout "copy_file_from_template() : Le nom du fichier donné en premier paramère '${file_name}' n'a aucun template associé dans './templates/${project_type}/custom ou default'. Abandon..."
     # --
@@ -141,8 +141,8 @@ copy_file_from_template() {
 
     # Export des variables trouvées dans templates/$project_type/variables
     if [ -n "${conf_file_path}" ]; then
-        local array_conf_vars=$(conf_reader "${conf_file_path}")
-        if $array_conf_vars; then
+        debug_ "conf_reader() '${conf_file_path}' renvoie : ${array_conf_vars}"
+        if local array_conf_vars=$(conf_reader "${conf_file_path}"); then
             if [ -n "${array_conf_vars}" ]; then
                 debug_ "export des variables : ${array_conf_vars} (fichier de config) pour prise en compte dans le remplacement dynamique du template"
                 source "${conf_file_path}"
@@ -157,7 +157,7 @@ copy_file_from_template() {
                 done
             fi
         else
-            fout "Erreur lors de la récupération des variable du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
+            fout "Erreur lors de la récupération des variables du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
         fi
     else
         lout "Pas de fichier de configuration associé, aucune variable supplémentaire ne sera prise en compte"

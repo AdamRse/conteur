@@ -20,8 +20,7 @@ ex() {
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
-PROJECT_NLOL="qsqsdqd"
-copy_file_from_template "docker-compose.yml" "$PJ/conteur" "PROJECT_NLOL"
+copy_file_from_template "docker-compose.yml" "$PJ/conteur"
 
 
 # zala="zal"
