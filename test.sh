@@ -8,6 +8,7 @@ DEBUG_MODE=true
 project_dir="$PWD"
 project_name="conteur"
 project_path="$PJ"
+project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
@@ -19,12 +20,8 @@ ex() {
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
-test_conf="$PJ/conteur/templates/laravel/conf/test.conf"
-#Appel de la fonction
-new_vars=$(conf_reader "$test_conf")
-
-
-echo "$new_vars"
+PROJECT_NLOL="qsqsdqd"
+copy_file_from_template "docker-compose.yml" "$PJ/conteur" "PROJECT_NLOL"
 
 
 # zala="zal"

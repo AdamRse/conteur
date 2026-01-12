@@ -62,6 +62,7 @@ conf_reader() {
     fi
 }
 
+# Note : Ne vérifie pas si les variables passées sont bien dans le template
 # $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
@@ -84,8 +85,10 @@ copy_file_from_template() {
     # CHECKS
     [ -z "${file_name}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun nom de fichier donné en premier paramètre."
     [ -z "${output_dir}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun répertoire de sortie donné en deucième paramètre."
+    [ -z "${script_dir}" ] && eout "copy_file_from_template() : Variable 'script_dir' absente, elle doit être initialisée dans le script principal avec le chemin absolu du programme."
+    [ -z "${project_type}" ] && eout "copy_file_from_template() : Variable 'project_type' absente, elle doit être initialisée dans le script principal avec avec nom de répertoires dans ./templates."
     if [ ! -f "${conf_file_path}" ]; then
-        lout "Fichier de configuration nom trouvé à l'emplacement : ${conf_file_path}"
+        lout "Fichier de configuration introuvable à l'emplacement : ${conf_file_path}"
         conf_file_path=""
     fi
     debug_ "Fichier de configuration : '${conf_file_path}'"
@@ -130,30 +133,35 @@ copy_file_from_template() {
                 envsubst_exported_vars="\$$var_name ${envsubst_exported_vars}"
                 debug_ "variable \$${var_name} exportée"
             else
-                fout "La variable '${var_name}' passée en 3ème paramètre de 'copy_file_from_template()' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez le nom de la variable passée à 'copy_file_from_template()', elle doit comporter une erreur de nom."
+                fout "La variable '${var_name}' passée en 3ème paramètre de 'copy_file_from_template()' ne pointe sur aucune valeur. Vérifiez le nom de la variable passée à 'copy_file_from_template()', elle doit comporter une erreur de nom. Abandon..."
+                return 1
             fi
         done
     fi
 
     # Export des variables trouvées dans templates/$project_type/variables
-    local array_conf_vars=$(conf_reader "${conf_file_path}")
-    if $array_conf_vars; then
-        if [ -n "${array_conf_vars}" ]; then
-            debug_ "export des variables : ${array_conf_vars} (fichier de config) pour prise en compte dans le remplacement dynamique du template"
-            source "${conf_file_path}"
-            for conf_var_name in $array_conf_vars; do
-                if [ -n "${!conf_var_name}" ]; then
-                    export $conf_var_name
-                    envsubst_exported_vars="\$$conf_var_name ${envsubst_exported_vars}"
-                    debug_ "variable \$${conf_var_name} exportée"
-                else
-                    wout "La variable '${conf_var_name}' trouvée dans le fichier de config '${conf_file_path}' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez que la variable ${conf_var_name} ait bien une valeur attachée"
-                fi
-            done
+    if [ -n "${conf_file_path}" ]; then
+        local array_conf_vars=$(conf_reader "${conf_file_path}")
+        if $array_conf_vars; then
+            if [ -n "${array_conf_vars}" ]; then
+                debug_ "export des variables : ${array_conf_vars} (fichier de config) pour prise en compte dans le remplacement dynamique du template"
+                source "${conf_file_path}"
+                for conf_var_name in $array_conf_vars; do
+                    if [ -n "${!conf_var_name}" ]; then
+                        export $conf_var_name
+                        envsubst_exported_vars="\$$conf_var_name ${envsubst_exported_vars}"
+                        debug_ "variable \$${conf_var_name} exportée"
+                    else
+                        wout "La variable '${conf_var_name}' trouvée dans le fichier de config '${conf_file_path}' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez que la variable ${conf_var_name} ait bien une valeur attachée"
+                    fi
+                done
+            fi
+        else
+            fout "Erreur lors de la récupération des variable du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
         fi
     else
-        fout "Erreur lors de la récupération des variable du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
-    fi 
+        lout "Pas de fichier de configuration associé, aucune variable supplémentaire ne sera prise en compte"
+    fi
 
 
     # ÉCRITURE DU TEMPLATE
@@ -162,6 +170,7 @@ copy_file_from_template() {
         debug_ "Aucune variable dynamique donné, le template sera copié tel quel."
         debug_ "copie de '${found_template_path}' à '${destination_file_path}'"
         if cp "${found_template_path}" "${destination_file_path}"; then
+            sout "Copie de ${file_name} effectuée"
             return 0
         else
             fout "Impossible de copier le template dans le répertoire de destination. Vérifier les privilèges de '${output_dir}'"
