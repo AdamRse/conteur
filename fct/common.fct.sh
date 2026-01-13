@@ -75,8 +75,8 @@ copy_file_from_template() {
     local destination_file_path="${output_dir}/${file_name}"
     local envsubst_exported_vars="" # Export des variables et construction de $envsubst_exported_vars pour envsubst# Obtention du template associé à $file_name
     local template_name_possibilities_by_priority=( # Noms possible des templates à récupérer à partir du nom. PAR ORDRE DE PRIORITÉ
-        "${script_dir}/templates/${project_type}/custom/${file_name}"
         "${script_dir}/templates/${project_type}/custom/${file_name}.template"
+        "${script_dir}/templates/${project_type}/custom/${file_name}"
         "${script_dir}/templates/${project_type}/default/${file_name}.template"
     )
     local found_template_path=""
