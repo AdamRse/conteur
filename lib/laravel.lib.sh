@@ -3,9 +3,9 @@
 laravel_script_name=$(basename $0)
 
 # templates
-dockerfile_template_path="${script_dir}/templates/laravel/Dockerfile.template"
-docker_compose_template_path="${script_dir}/templates/laravel/docker-compose.yml.template"
-nginx_template_path="${script_dir}/templates/laravel/nginx.template"
+dockerfile_template_path="${script_dir}/templates/laravel/default/Dockerfile.template"
+docker_compose_template_path="${script_dir}/templates/laravel/default/docker-compose.yml.template"
+nginx_template_path="${script_dir}/templates/laravel/default/nginx.conf.template"
 
 # fichiers du projet
 project_docker_dir="${project_path}/.docker/development"
@@ -65,21 +65,20 @@ laravel_create_dockerfile() {
         \n\tLe dockerfile ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
     # -------------------------------------------------------------------------------------------------
+    local project_dockerfile_file="Dockerfile"
+    local project_dockerfile_path="$(dirname ${project_dockerfile_path})"
+    local project_dockerfile_vars="PHP_VERSION"
 
-    lout "Création du dockerfile (${project_dockerfile_path})"
-    if [ -f "${project_dockerfile_path}" ]; then
-        wout "Dockerfile détecté dans '${project_dockerfile_path}'"
-        ask_yn "Faut-il écraser le Dockerfile existant ?"
-    fi
+    debug_ "Appel de copy_file_from_template() :\n\t\t${project_dockerfile_file}\n\t\t${project_dockerfile_path}\n\t\t${project_dockerfile_vars}"
+    lout "Création du ${project_dockerfile_file} (${project_dockerfile_path})"
 
-    if envsubst '$PHP_VERSION' < "$dockerfile_template_path" > "$project_dockerfile_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
-        sout "Dockerfile créé dans $project_dockerfile_path"
+    if copy_file_from_template $project_dockerfile_file $project_dockerfile_path $project_dockerfile_vars; then
+        sout "${project_dockerfile_file} créé dans $project_dockerfile_path"
         return 0
     else
-        fout "${laravel_script_name} laravel_create_dockerfile() : envsubst n'a pas pu créer le Dockerfile à partir du template ${dockerfile_template_path}"
+        fout "${laravel_script_name}/laravel_create_dockerfile() : Impossible de créer le fichier ${project_dockerfile_file} à partir de son template"
         return 1
     fi
-    
 }
 
 laravel_create_docker_compose() {
@@ -89,18 +88,18 @@ laravel_create_docker_compose() {
         \n\tLe docker-compose ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
     # -------------------------------------------------------------------------------------------------
+    local project_docker_compose_file="docker-compose.yml"
+    local project_docker_compose_path="$(dirname ${project_docker_compose_path})"
+    local project_docker_compose_vars="PROJECT_NAME"
 
-    lout "Création du dockerfile (${project_docker_compose_path})"
-    if [ -f "${project_docker_compose_path}" ]; then
-        wout "docker-compose.yml détecté dans '${project_docker_compose_path}'"
-        ask_yn "Faut-il écraser le docker-compose.yml existant ?"
-    fi
+    debug_ "Appel de copy_file_from_template() :\n\t\t${project_docker_compose_file}\n\t\t${project_docker_compose_path}\n\t\t${project_docker_compose_vars}"
+    lout "Création du ${project_docker_compose_file} (${project_docker_compose_path})"
 
-    if envsubst '$PHP_VERSION $PROJECT_NAME $LARAVEL_VERSION' < "$docker_compose_template_path" > "$project_docker_compose_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
-        sout "docker-compose.yml créé dans $project_docker_compose_path"
+    if copy_file_from_template $project_docker_compose_file $project_docker_compose_path $project_docker_compose_vars; then
+        sout "${project_docker_compose_file} créé dans $project_docker_compose_path"
         return 0
     else
-        fout "${laravel_script_name} laravel_create_docker_compose() : envsubst n'a pas pu créer le docker-compose.yml à partir du template ${docker_compose_template_path}"
+        fout "${laravel_script_name}/laravel_create_docker_compose() : Impossible de créer le fichier ${project_docker_compose_file} à partir de son template"
         return 1
     fi
 }
@@ -112,18 +111,18 @@ laravel_create_nginx_config() {
         \n\tLe fichier de configuration nginx ne sera pas créé dans le projet, retirer cette contition une fois le debug fini"
     fi
     # -------------------------------------------------------------------------------------------------
+    local project_nginx_file="nginx.conf"
+    local project_nginx_path="$(dirname ${project_nginx_path})"
+    local project_nginx_vars="PROJECT_NAME"
 
-    lout "Création du dockerfile (${project_nginx_path})"
-    if [ -f "${project_nginx_path}" ]; then
-        wout "nginx.conf détecté dans '${project_nginx_path}'"
-        ask_yn "Faut-il écraser le fichier de configuration nginx existant ?"
-    fi
+    debug_ "Appel de copy_file_from_template() :\n\t\t${project_nginx_file}\n\t\t${project_nginx_path}\n\t\t${project_nginx_vars}"
+    lout "Création du fichier de config nginx (${project_nginx_path})"
 
-    if envsubst '$PROJECT_NAME' < "$nginx_template_path" > "$project_nginx_path"; then # Ajouter les variables à remplacer, sinon envsubst remplace les variables inconues
-        sout "fichier de configuration nginx créé dans $project_nginx_path"
+    if copy_file_from_template $project_nginx_file $project_nginx_path $project_nginx_vars; then
+        sout "Fichier de configuration nginx créé dans $project_nginx_path"
         return 0
     else
-        fout "${laravel_script_name} laravel_create_docker_compose() : envsubst n'a pas pu créer le fichier de configuration nginx à partir du template ${project_nginx_path}"
+        fout "${laravel_script_name}/laravel_create_docker_compose() : Impossible de créer le fichier ${project_nginx_path} à partir de son template"
         return 1
     fi
 }

@@ -12,15 +12,12 @@ project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
-# source "${script_dir}/lib/laravel.lib.sh"
+source "${script_dir}/lib/laravel.lib.sh"
 
-ex() {
-    export $1=$1
-}
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
-copy_file_from_template "docker-compose.yml" "$PJ/conteur"
+create_project
 
 
 # zala="zal"

@@ -1,0 +1,4 @@
+templates/laravel/conf/*
+!templates/laravel/conf/readme.md
+templates/laravel/custom/*
+!templates/laravel/custom/readme.md

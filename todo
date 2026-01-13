@@ -1,6 +1,1 @@
-- fct/common.fct.sh copy_file_from_template() : Il faut exporter les variables dans ./environment/
-    Il va falloir restructurer, création de templates/laravel/variables pour les variables dynamiques des templates, + logique que dans ./environment
-
 - laravel.lib.sh create_project() : non fini, il faut appeler la commaned docker pour créer le projet laravel
-
-- fct/common.fct.sh ligne 146, return 0 et return 1 n'est pas pris en compte par le if, a voir
