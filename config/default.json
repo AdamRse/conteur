@@ -7,21 +7,21 @@
             "docker-compose.yml":{
                 "project_dir":""
                 ,"variables":{
-                    "PROJECT_NAME":"$PROJECT_NAME"
+                    "PROJECT_NAME":"${PROJECT_NAME}"
                 }
             }
             ,"Dockerfile":{
                 "project_dir":"./"
                 ,"variables":{
-                    "PROJECT_NAME":"$PROJECT_NAME"
-                    ,"PHP_VERSION":"$PHP_VERSION"
+                    "PROJECT_NAME":"${PROJECT_NAME}"
+                    ,"PHP_VERSION":"${PHP_VERSION}"
                 }
             }
             ,"nginx.conf":{
                 "project_dir":""
                 ,"variables":{
-                    "PROJECT_NAME":"$PROJECT_NAME"
-                    ,"PHP_VERSION":"$PHP_VERSION"
+                    "PROJECT_NAME":"${PROJECT_NAME}"
+                    ,"PHP_VERSION":"${PHP_VERSION}"
                 }
             }
         }
