@@ -35,6 +35,8 @@ check_project_type() {
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
+
+
 # return Array+true|false
 conf_reader() {
     local config_file="${1}"
@@ -62,12 +64,22 @@ conf_reader() {
     fi
 }
 
+# Vérifier que les variables obligatoires sont bien disponnibles dans le json
+check_config_json(){
+
+}
+
+# Nouvelle version avec config/default.json
+copy_file_from_template(){
+
+}
+
 # Note : Ne vérifie pas si les variables passées sont bien dans le template
 # $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
 # return bool
-copy_file_from_template() {
+copy_file_from_template_old() {
     debug_ "copy_file_from_template() : paramètres passés :\n\t- \$1 : ${1}\n\t- \$2 : ${2}\n\t- \$3 : ${3}"
     local file_name=$1
     local output_dir=$2
