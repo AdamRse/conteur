@@ -16,12 +16,8 @@ source "${script_dir}/fct/common.fct.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-if merge_config_json; then
-    echo "VALIDE"
-else
-    echo "NON"
-fi
-
+#copy_files_from_template
+echo $(clean_path_variable "relative" ".socker/")
 
 # zala="zal"
 # name="zala"

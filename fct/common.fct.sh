@@ -96,13 +96,22 @@ export_json_config(){
     JSON_CONFIG=$(merge_config_json)
     debug_ "Vérification de l'intégrité du JSON obetnu par merge_config_json()"
     check_json_config_integrity "${JSON_CONFIG}"
-    export $JSON_CONFIG
+    export JSON_CONFIG
 }
 
+# $1 : mode     : relative|absolute
+# $2 : path     : 
+# return string : path nettoyé
+clean_path_variable(){
+    local mode="${1}"
+    local path="${2}"
+    if [ "${mode}" = "relative" ]; then
+        
+    elif [ "${mode}" = "absolute" ]; then
 
-get_templates_from_config(){
-    export_json_config
-    
+    else
+        eout "clean_path_variable() : Erreur, mode non conforme passé en 1er paramètre. Attendu : 'absolute' ou 'relative'"
+    fi
 }
 
 # Note : Ne vérifie pas si les variables passées sont bien dans le template
@@ -110,6 +119,8 @@ get_templates_from_config(){
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
 # return bool
-copy_file_from_template() {
-    echo "A venir"
+copy_files_from_template() {
+    export_json_config
+    local project_docker_dir=$(jq ".${project_type}.settings.project_dockerfiles_dir" <<< "$JSON_CONFIG")
+    echo "project docker dir : $project_docker_dir"
 }
