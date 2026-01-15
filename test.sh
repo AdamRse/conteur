@@ -17,7 +17,7 @@ source "${script_dir}/fct/common.fct.sh"
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 #copy_files_from_template
-echo $(clean_path_variable "relative" ".socker/")
+copy_files_from_template
 
 # zala="zal"
 # name="zala"
