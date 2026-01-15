@@ -105,18 +105,19 @@ export_json_config(){
 clean_path_variable(){
     local mode="${1}"
     local path="${2}"
-    local relative="relative"
-    local absolute="absolute"
-    path=$(echo "$path" | tr -s '/')
-    if [ "${mode}" = "${relative}" ]; then
-        path="${path#/}"
-        path="${path%/}"
-    elif [ "${mode}" = "${absolute}" ]; then
-        path="/${path#/}"
-        path="${path%/}"
-        [ -z "$path" ] && path="/"
-    else
-        eout "clean_path_variable() : Erreur, mode non conforme passé en 1er paramètre. Attendu : '${relative}' ou '${absolute}'"
+    if [ -n "${path}" ]; then
+        local relative="relative"
+        local absolute="absolute"
+        path=$(echo "$path" | tr -s '/')
+        if [ "${mode}" = "${relative}" ]; then
+            path="${path#/}"
+            path="${path%/}"
+        elif [ "${mode}" = "${absolute}" ]; then
+            path="/${path#/}"
+            path="${path%/}"
+        else
+            eout "clean_path_variable() : Erreur, mode non conforme passé en 1er paramètre. Attendu : '${relative}' ou '${absolute}'"
+        fi
     fi
     echo "$path"
 }
@@ -128,7 +129,12 @@ clean_path_variable(){
 # return bool
 copy_files_from_template() {
     export_json_config
-    local project_docker_dir=$(jq ".${project_type}.settings.project_dockerfiles_dir" <<< "$JSON_CONFIG")
-    project_docker_dir="$(clean_path_variable "relative" "${project_docker_dir}")"
+    [ -z "${project_dir}" ] && eout "copy_files_from_template() : La variable '\$project_dir' doit être initialisée avant"
+
+    local project_docker_dir_relative=$(jq -r ".${project_type}.settings.project_dockerfiles_dir" <<< "$JSON_CONFIG")
+    project_docker_dir_relative="$(clean_path_variable "relative" "${project_docker_dir_relative}")"
+
+    local project_docker_dir="${project_dir}/${project_docker_dir_relative}"
+
     echo "project docker dir : $project_docker_dir"
 }
