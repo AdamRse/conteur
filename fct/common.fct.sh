@@ -77,26 +77,32 @@ merge_config_json(){
     [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
 
     local default_json=$(cat "${default_path}")
-    check_json_config_integrity "${default_json}"
 
     if [ -f "${custom_path}" ]; then
         local custom_json=$(cat "${custom_path}")
 
         if [ -n "${custom_json}" ] && is_json_var "${custom_json}"; then
             local merged_json="$(jq -s 'reduce .[] as $item ({}; . * $item)' "${default_path}" "${custom_path}")"
-
-            if check_json_config_integrity "${merged_json}"; then
-                echo "${merged_json}"
-                return 0
-            fi
+            echo "${merged_json}"
+            return 0
         fi
     fi
     echo "${default_json}"
     return 0
 }
 
+# return void|exit
+export_json_config(){
+    JSON_CONFIG=$(merge_config_json)
+    debug_ "Vérification de l'intégrité du JSON obetnu par merge_config_json()"
+    check_json_config_integrity "${JSON_CONFIG}"
+    export $JSON_CONFIG
+}
+
+
 get_templates_from_config(){
-    echo "A venir"
+    export_json_config
+    
 }
 
 # Note : Ne vérifie pas si les variables passées sont bien dans le template
