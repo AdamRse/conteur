@@ -5,14 +5,14 @@
         }
         ,"templates":{
             "docker-compose.yml":{
-                "selected":"true"
+                "selected":true
                 ,"project_dir":""
                 ,"variables":{
                     "PROJECT_NAME":"${PROJECT_NAME}"
                 }
             }
             ,"Dockerfile":{
-                "selected":"true"
+                "selected":true
                 ,"project_dir":"./"
                 ,"variables":{
                     "PROJECT_NAME":"${PROJECT_NAME}"
@@ -20,7 +20,7 @@
                 }
             }
             ,"nginx.conf":{
-                "selected":"true"
+                "selected":true
                 ,"project_dir":""
                 ,"variables":{
                     "PROJECT_NAME":"${PROJECT_NAME}"

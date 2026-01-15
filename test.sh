@@ -12,12 +12,15 @@ project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
-source "${script_dir}/lib/laravel.lib.sh"
+#source "${script_dir}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-
-create_project
+if merge_config_json; then
+    echo "VALIDE"
+else
+    echo "NON"
+fi
 
 
 # zala="zal"

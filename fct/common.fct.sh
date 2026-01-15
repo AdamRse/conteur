@@ -35,43 +35,68 @@ check_project_type() {
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
+# $1 : json_test : Chaîne JSON à tester
+# return true|exit
+check_json_config_integrity(){
+    local json_test="${1}"
+    [ -z "${json_test}" ] && eout "check_json_config_integrity() : Aucun paramètre passé"
 
+    is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
-# return Array+true|false
-conf_reader() {
-    local config_file="${1}"
-    
-    if [[ ! -f "$config_file" ]]; then
-        fout "conf_reader() : Le fichier de configuration '${config_file}' n'est pas trouvable."
-        return 1
+    local has_project=$(jq ".${project_type}" <<< "$json_test")
+    if [ "$has_project" == "null" ]; then
+        eout "check_json_config_integrity() : Le type de projet '${project_type}' est absent du JSON."
     fi
 
-    local vars_found
-    if vars_found=$(bash -c "
-        set -a
-        before_VAR_TO_REMOVE_Za2000pbn=\$(compgen -v)
-        source \"$config_file\" || exit \$?
-        after=\$(compgen -v)
-        # Filtre, et on enlève before_VAR_TO_REMOVE_Za2000pbn qui s'ets incrustée
-        comm -13 <(echo \"\$before_VAR_TO_REMOVE_Za2000pbn\") <(echo \"\$after\") | grep -v 'before_VAR_TO_REMOVE_Za2000pbn' | tr '\n' ' '
-    "); then
-        echo "${vars_found}"
-        return 0
-    else
-        local exit_code=$?
-        fout "conf_reader() : Le fichier '${config_file}' n'a pas pu être interprété par bash, il contient une erreur (exit code : ${exit_code}).\n\t\tLes variables du fichier de configuration ne seront pas appliquées au template."
+    local local selected_count=$(jq "[.${project_type}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
+
+    if [ "$selected_count" -eq 0 ]; then
+        eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${project_type}."
+    fi
+
+    return 0
+}
+
+# return bool
+is_json_var(){
+    local json_test="${1}"
+    [ -z "${json_test}" ] && eout "is_json_var() : Aucun paramètre passé"
+
+    if ! jq -e . <<< "$json_test" >/dev/null 2>&1; then
         return 1
     fi
+    return 0
 }
 
-# Vérifier que les variables obligatoires sont bien disponnibles dans le json
-check_config_json(){
+# return JSON|exit
+merge_config_json(){
+    local default_path="${script_dir}/config/default.json"
+    local custom_path="${script_dir}/config/custom.json"
 
+    [ -d "${script_dir}" ] || eout "merge_config_json() : la variable \$script_dir n'est pas initialisée"
+    [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
+
+    local default_json=$(cat "${default_path}")
+    check_json_config_integrity "${default_json}"
+
+    if [ -f "${custom_path}" ]; then
+        local custom_json=$(cat "${custom_path}")
+
+        if [ -n "${custom_json}" ] && is_json_var "${custom_json}"; then
+            local merged_json="$(jq -s 'reduce .[] as $item ({}; . * $item)' "${default_path}" "${custom_path}")"
+
+            if check_json_config_integrity "${merged_json}"; then
+                echo "${merged_json}"
+                return 0
+            fi
+        fi
+    fi
+    echo "${default_json}"
+    return 0
 }
 
-# Nouvelle version avec config/default.json
-copy_file_from_template(){
-
+get_templates_from_config(){
+    echo "A venir"
 }
 
 # Note : Ne vérifie pas si les variables passées sont bien dans le template
@@ -79,124 +104,6 @@ copy_file_from_template(){
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
 # return bool
-copy_file_from_template_old() {
-    debug_ "copy_file_from_template() : paramètres passés :\n\t- \$1 : ${1}\n\t- \$2 : ${2}\n\t- \$3 : ${3}"
-    local file_name=$1
-    local output_dir=$2
-    local variables_name=$3
-    local destination_file_path="${output_dir}/${file_name}"
-    local envsubst_exported_vars="" # Export des variables et construction de $envsubst_exported_vars pour envsubst# Obtention du template associé à $file_name
-    local template_name_possibilities_by_priority=( # Noms possible des templates à récupérer à partir du nom. PAR ORDRE DE PRIORITÉ
-        "${script_dir}/templates/${project_type}/custom/${file_name}.template"
-        "${script_dir}/templates/${project_type}/custom/${file_name}"
-        "${script_dir}/templates/${project_type}/default/${file_name}.template"
-    )
-    local found_template_path=""
-    local conf_file_path="${script_dir}/templates/${project_type}/conf/${file_name}.conf"
-
-    # CHECKS
-    [ -z "${file_name}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun nom de fichier donné en premier paramètre."
-    [ -z "${output_dir}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun répertoire de sortie donné en deucième paramètre."
-    [ -z "${script_dir}" ] && eout "copy_file_from_template() : Variable 'script_dir' absente, elle doit être initialisée dans le script principal avec le chemin absolu du programme."
-    [ -z "${project_type}" ] && eout "copy_file_from_template() : Variable 'project_type' absente, elle doit être initialisée dans le script principal avec avec nom de répertoires dans ./templates."
-    if [ ! -f "${conf_file_path}" ]; then
-        lout "Fichier de configuration introuvable à l'emplacement : ${conf_file_path}"
-        conf_file_path=""
-    fi
-    debug_ "Fichier de configuration : '${conf_file_path}'"
-
-    # Vérification de l'existance du répertoire de destination
-    if [ ! -d "${output_dir}" ]; then
-        if ask_yn "Le répertoire dans lequel copier le fichier ${file_name} n'a pas été trouvé dans '${output_dir}'. Création du répertoire ou abandon du script : Faut-il créer le répertoire ?"; then
-            mkdir -p "${output_dir}" || eout "La création du répertoire a échoué, droit probablement insuffisants. Abandon..."
-        else
-            eout "Le répertoire cible ne sera pas créé, Abandon..."
-        fi
-    fi
-
-    # Vérification de l'existance d'un fichier destination
-    debug_ "vérification de ${destination_file_path}"
-    if [ -f "${destination_file_path}" ]; then
-        wout "${file_name} détecté dans '${output_dir}'"
-        if ! ask_yn "La procédure continuera en cas de refus, le fichier ${file_name} sera simplement ignoré. Faut-il écraser le fichier ${file_name} existant ?"; then
-            lout "Le fichier ${file_name} existe déjà, l'utilisateur préfère garder la version existante, ${file_name} est ignoré."
-            return 0
-        fi
-    fi
-
-    for template_path in "${template_name_possibilities_by_priority[@]}"; do
-        if [ -f "${template_path}" ]; then
-            found_template_path="$template_path"
-            debug_ "Template ${found_template_path} trouvé pour le fichier ${file_name} ✓"
-            break
-        fi
-        debug_ "Template ${template_path}, pas de correspondance avec ${file_name} ⤫"
-    done
-    [ -z "${found_template_path}" ] && eout "copy_file_from_template() : Le nom du fichier donné en premier paramère '${file_name}' n'a aucun template associé dans './templates/${project_type}/custom ou default'. Abandon..."
-    # --
-
-    # Si des variables à exporter sont passées en 3ème paramètre, on les exporte et on les intègre dans la chaine qui servira
-    if [ -n "${variables_name}" ]; then
-        debug_ "export des variables : ${variables_name} pour prise en compte dans le remplacement dynamique du template"
-        for var_name in $variables_name
-        do
-            if [ -n "${!var_name}" ]; then
-                export $var_name
-                envsubst_exported_vars="\$$var_name ${envsubst_exported_vars}"
-                debug_ "variable \$${var_name} exportée"
-            else
-                fout "La variable '${var_name}' passée en 3ème paramètre de 'copy_file_from_template()' ne pointe sur aucune valeur. Vérifiez le nom de la variable passée à 'copy_file_from_template()', elle doit comporter une erreur de nom. Abandon..."
-                return 1
-            fi
-        done
-    fi
-
-    # Export des variables trouvées dans templates/$project_type/variables
-    if [ -n "${conf_file_path}" ]; then
-        debug_ "conf_reader() '${conf_file_path}' renvoie : ${array_conf_vars}"
-        if local array_conf_vars=$(conf_reader "${conf_file_path}"); then
-            if [ -n "${array_conf_vars}" ]; then
-                debug_ "export des variables : ${array_conf_vars} (fichier de config) pour prise en compte dans le remplacement dynamique du template"
-                source "${conf_file_path}"
-                for conf_var_name in $array_conf_vars; do
-                    if [ -n "${!conf_var_name}" ]; then
-                        export $conf_var_name
-                        envsubst_exported_vars="\$$conf_var_name ${envsubst_exported_vars}"
-                        debug_ "variable \$${conf_var_name} exportée"
-                    else
-                        wout "La variable '${conf_var_name}' trouvée dans le fichier de config '${conf_file_path}' ne pointe sur aucune valeur, elle est ignoré et ne modifiera pas le template. Vérifiez que la variable ${conf_var_name} ait bien une valeur attachée"
-                    fi
-                done
-            fi
-        else
-            fout "Erreur lors de la récupération des variables du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
-        fi
-    else
-        lout "Pas de fichier de configuration associé, aucune variable supplémentaire ne sera prise en compte"
-    fi
-
-
-    # ÉCRITURE DU TEMPLATE
-    lout "Création du fichier ${file_name} dans ${output_dir}"
-    if [ -z "${envsubst_exported_vars}" ]; then
-        debug_ "Aucune variable dynamique donné, le template sera copié tel quel."
-        debug_ "copie de '${found_template_path}' à '${destination_file_path}'"
-        if cp "${found_template_path}" "${destination_file_path}"; then
-            sout "Copie de ${file_name} effectuée"
-            return 0
-        else
-            fout "Impossible de copier le template dans le répertoire de destination. Vérifier les privilèges de '${output_dir}'"
-            return 1
-        fi
-    else
-        debug_ "Variables dynamiques à rempalcer dans le template : ${envsubst_exported_vars}"
-        debug_ "envsubst : copie de '${found_template_path}' à '${destination_file_path}'"
-        if envsubst "${envsubst_exported_vars}" < "$found_template_path" > "$destination_file_path"; then
-            sout "${file_name} créé !"
-            return 0
-        else
-            fout "copy_file_from_template() : envsubst n'a pas pu créer le fichier '${file_name}' à partir du template ${found_template_path}"
-            return 1
-        fi
-    fi
+copy_file_from_template() {
+    echo "A venir"
 }
