@@ -185,14 +185,35 @@ copy_file() {
     project_dir=$(echo "$configuration" | jq -r '.project_dir')
 }
 
-# $1 : file_project_name    : Le nom du fichier à copier
-# $2 : file_project_dir     : Le répertoire par féfaut 
+# $1 : file_name                            : Le nom du fichier à copier
+# $2 : project_docker_files_dir             : Répertoire par défaut des fichiers docker dans le projet (variable config/default.json du même nom)
+# $3 : project_file_custom_dir (optionnel)  : Le répertoire personnalisé du fichier dans le répertoire de projet  (variable "project_dir" config/default.json)
+# return result+true|false
 get_project_file_path(){
+    local file_name="${1}"
+    local project_docker_files_dir="${2}"
+    local project_file_custom_dir="${3}"
+    local l_project_dir="${project_dir}"
+    [ -z "${file_name}" ] && eout "get_project_file_path() : Aucun nom passé en premier paramètre"
+    [ -z "${l_project_dir}" ] && eout "get_project_file_path() : La variable globale '\$project_dir' doit être initialisée"
+    [ -d "${l_project_dir}" ] || eout "get_project_file_path() : Le répertoire du projet doit être créé"
 
+    local file_location=""
+    if [ -n "${project_file_custom_dir}" ]; then
+        if [ "${project_file_custom_dir}" = "." ] || [ "${project_file_custom_dir}" = "./" ] || [ "${project_file_custom_dir}" = "/" ]; then
+            file_location="${l_project_dir}/${file_name}"
+        else
+            file_location="${l_project_dir}/${project_file_custom_dir}/${file_name}"
+        fi
+    else
+        file_location="${l_project_dir}/${project_docker_files_dir}/${file_name}"
+    fi
+
+    echo "$(clean_path_variable "absolute" "${file_location}")"
 }
 
 # $1 : name     : Le nom du fichier pour lequel trouver le template associé
-# return result+true|false
+# return result+true|wout+false
 find_template_from_name() {
     local name="${1}"
     local default_templates_dir="${script_dir}/templates/${project_type}/default"
