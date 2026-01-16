@@ -25,6 +25,7 @@ if check_json_config_integrity "$jsn"; then
 else
     echo "ERREUR"
 fi
+copy_files_from_template "$jsn"
 
 # zala="zal"
 # name="zala"

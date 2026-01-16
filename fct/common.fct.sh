@@ -35,7 +35,19 @@ check_project_type() {
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
+# return bool
+is_json_var(){
+    local json_test="${1}"
+    [ -z "${json_test}" ] && eout "is_json_var() : Aucun paramètre passé"
+
+    if ! jq -e . <<< "$json_test" >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
 # Utilisable avec un pipe
+# return "bool"|empty
 parse_jq_bool() {
     local filter="$1"
     local data="${2:-$(cat)}"
@@ -47,39 +59,33 @@ parse_jq_bool() {
         end"
 }
 
-# $1 : json_test : Chaîne JSON à tester
+# $1 : json_test : Chaîne de config JSON à tester
 # return true|exit
 check_json_config_integrity(){
-    local json_test="${1}"
+    local json_test="${1:-$JSON_CONFIG}"
+    lout "Check de l'intégrité du fichier de configuration JSON"
     [ -z "${json_test}" ] && eout "check_json_config_integrity() : Aucun paramètre passé"
 
+
+    debug_ "Vérification du type de variable JSON"
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
+    debug_ "Vérification du contenu logique"
     local has_project=$(jq ".project_type.${project_type}" <<< "$json_test")
     if [ "$has_project" == "null" ]; then
         eout "check_json_config_integrity() : Le type de projet '${project_type}' est absent du JSON."
     fi
 
+    debug_ "Vérification de laravel Sail"
     local is_sail=$(parse_jq_bool ".project_type.${project_type}.settings.sail.useSail" <<< "$json_test")
     if [ "${is_sail}" = false ]; then
+        debug_ "Vérification des templates"
         local selected_count=$(jq "[.project_type.${project_type}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
-
         if [ "$selected_count" -eq 0 ]; then
             eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${project_type}. Séléctionner au moins un template si Laravel Sail n'est pas utilisé"
         fi
     fi
-
-    return 0
-}
-
-# return bool
-is_json_var(){
-    local json_test="${1}"
-    [ -z "${json_test}" ] && eout "is_json_var() : Aucun paramètre passé"
-
-    if ! jq -e . <<< "$json_test" >/dev/null 2>&1; then
-        return 1
-    fi
+    debug_ "Fichier de configuration JSON conforme."
     return 0
 }
 
@@ -137,16 +143,20 @@ clean_path_variable(){
     echo "$path"
 }
 
-
+# $1(Optionnel) : json_config  : json de configuration, apr défaut prend une variable exportée
 copy_files_from_template() {
-    export_json_config
-    [ -z "${project_dir}" ] && eout "copy_files_from_template() : La variable '\$project_dir' doit être initialisée avant"
+    local json_config=${1:-$JSON_CONFIG}
+    [ -z "${json_config}" ] && eout "copy_files_from_template() : Le JSON de configuration n'a pas été trouvé."
+    [ -z "${project_dir}" ] && eout "copy_files_from_template() : La variable '\$project_dir' doit être initialisée avant."
+    [ -d "${project_dir}" ] || eout "copy_files_from_template() : Le projet n'a pas été créé, créer le projet avant de faire appel à cette fonction."
+    check_json_config_integrity "${json_config}"
+    debug_ "Projet dans ${project_dir}"
 
-    local project_docker_dir_relative=$(jq -r ".${project_type}.settings.project_dockerfiles_dir" <<< "$JSON_CONFIG")
-    project_docker_dir_relative="$(clean_path_variable "relative" "${project_docker_dir_relative}")"
-    local project_docker_dir="${project_dir}/${project_docker_dir_relative}"
-
-
+    local project_docker_dir_relative=$(jq -r ".project_type.${project_type}.settings.project_docker_files_dir" <<< "$json_config")
+    local project_docker_dir="$(clean_path_variable "absolute" "${project_dir}/${project_docker_dir_relative}")"
 
     echo "project docker dir : $project_docker_dir"
+}
+copy_file() {
+    echo "a venir"
 }

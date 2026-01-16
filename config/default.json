@@ -5,7 +5,7 @@
     ,"project_type":{
         "laravel":{
             "settings":{
-                "project_dockerfiles_dir":".docker/development"
+                "project_docker_files_dir":".docker/development"
                 ,"sail":{
                     "useSail":"fasle"
                     ,"devcontainer":true
