@@ -20,11 +20,7 @@ debug_ "DEBUG MODE ON"
 
 jsn=$(merge_config_json)
 #echo "$jsn"
-if find_template_from_name "Dockerfile"; then
-    echo "VALIDE"
-else
-    echo "ERREUR"
-fi
+get_project_file_path "Zala.pb" ".dockerfile/dev" "oui/oui"
 # copy_files_from_template "$jsn"
 
 # zala="zal"
