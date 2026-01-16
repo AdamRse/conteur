@@ -155,8 +155,72 @@ copy_files_from_template() {
     local project_docker_dir_relative=$(jq -r ".project_type.${project_type}.settings.project_docker_files_dir" <<< "$json_config")
     local project_docker_dir="$(clean_path_variable "absolute" "${project_dir}/${project_docker_dir_relative}")"
 
-    echo "project docker dir : $project_docker_dir"
+    if [ -d "${project_docker_dir}" ]; then
+        mkdir -p "${project_docker_dir}" || eout "copy_files_from_template() : droits insufisants pour créer le répertoire de templates '${project_docker_dir}'"
+    fi
+
+    jq -r --arg type "${project_type}" '.project_type[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
+        copy_file "${name}" "${configuration}"
+    done
 }
 copy_file() {
-    echo "a venir"
+    local name="${1}"
+    local config="${2}"
+    local l_project_dir="${3:-$project_dir}"
+    [ -z "${name}" ] && fout "copy_file() : Aucun nom de template passé." && return 1
+    [ -z "${config}" ] && fout "copy_file() : Aucune configuration passée pour la copie du template ${name}." && return 1
+    [ -d "${l_project_dir}" ] || fout "copy_file() : Le répertoire de projet n'existe pas encore dans '${l_project_dir}'." && return 1
+    is_json_var "${config}" || fout "copy_file() : Le json de configuration n'est pas conforme :\n${config}" && return 1
+    local template_path="$(find_template_from_name "${name}")" || fout "copy_file() : Template de ${name} non trouvé." && return 1
+    local project_file_path=""
+
+    debug_ "Traitement du template : $name"
+    # On peut ensuite extraire des données spécifiques de la configuration du template
+    local selected=$(jq -r '.selected' <<< "${config}")
+    if [ "${selected}" = true ]; then
+        debug_ "Lancement de la copie"
+    else
+        debug_ "Le template ${name} est ignoré."
+    fi
+    project_dir=$(echo "$configuration" | jq -r '.project_dir')
+}
+
+# $1 : file_project_name    : Le nom du fichier à copier
+# $2 : file_project_dir     : Le répertoire par féfaut 
+get_project_file_path(){
+
+}
+
+# $1 : name     : Le nom du fichier pour lequel trouver le template associé
+# return result+true|false
+find_template_from_name() {
+    local name="${1}"
+    local default_templates_dir="${script_dir}/templates/${project_type}/default"
+    local custom_templates_dir="${script_dir}/templates/${project_type}/custom"
+    [ -z "${name}" ] && eout "find_template_from_name() : Aucun nom passé en premier paramètre"
+    [ -z "${script_dir}" ] && eout "find_template_from_name() : La variable globale '\$script_dir' doit être initialisé"
+    [ -z "${project_type}" ] && eout "find_template_from_name() : La variable globale '\$project_type' doit être initialisé"
+    [ -d "${default_templates_dir}" ] || eout "find_template_from_name() : Le répertoire de templates par défaut est introuvable dans : '${default_templates_dir}'"
+    
+    local template_path_possibility_by_priorities=(
+        "${custom_templates_dir}/${name}.template"
+        "${custom_templates_dir}/${name}"
+        "${default_templates_dir}/${name}.template"
+    )
+
+    local template_path_found=""
+    for template_path in "${template_path_possibility_by_priorities[@]}"; do
+        if [ -f "${template_path}" ]; then
+            template_path_found="${template_path}"
+            break
+        fi
+    done
+
+    if [ -n "${template_path_found}" ]; then
+        echo "${template_path_found}"
+        return 0
+    else
+        wout "find_template_from_name() : Aucun template trouvé pour '${name}'"
+        return 1
+    fi
 }

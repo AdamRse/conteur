@@ -20,12 +20,12 @@ debug_ "DEBUG MODE ON"
 
 jsn=$(merge_config_json)
 #echo "$jsn"
-if check_json_config_integrity "$jsn"; then
+if find_template_from_name "Dockerfile"; then
     echo "VALIDE"
 else
     echo "ERREUR"
 fi
-copy_files_from_template "$jsn"
+# copy_files_from_template "$jsn"
 
 # zala="zal"
 # name="zala"
