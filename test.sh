@@ -17,7 +17,14 @@ source "${script_dir}/fct/common.fct.sh"
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 #copy_files_from_template
-copy_files_from_template
+
+jsn=$(merge_config_json)
+#echo "$jsn"
+if check_json_config_integrity "$jsn"; then
+    echo "VALIDE"
+else
+    echo "ERREUR"
+fi
 
 # zala="zal"
 # name="zala"

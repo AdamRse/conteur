@@ -35,6 +35,18 @@ check_project_type() {
     [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
+# Utilisable avec un pipe
+parse_jq_bool() {
+    local filter="$1"
+    local data="${2:-$(cat)}"
+
+    echo "$data" | jq -r "$filter | 
+        if . == true or . == \"true\" or . == 1 or . == \"1\" then true
+        elif . == false or . == \"false\" or . == 0 or . == \"0\" then false
+        else empty
+        end"
+}
+
 # $1 : json_test : Chaîne JSON à tester
 # return true|exit
 check_json_config_integrity(){
@@ -43,15 +55,18 @@ check_json_config_integrity(){
 
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
-    local has_project=$(jq ".${project_type}" <<< "$json_test")
+    local has_project=$(jq ".project_type.${project_type}" <<< "$json_test")
     if [ "$has_project" == "null" ]; then
         eout "check_json_config_integrity() : Le type de projet '${project_type}' est absent du JSON."
     fi
 
-    local local selected_count=$(jq "[.${project_type}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
+    local is_sail=$(parse_jq_bool ".project_type.${project_type}.settings.sail.useSail" <<< "$json_test")
+    if [ "${is_sail}" = false ]; then
+        local selected_count=$(jq "[.project_type.${project_type}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
 
-    if [ "$selected_count" -eq 0 ]; then
-        eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${project_type}."
+        if [ "$selected_count" -eq 0 ]; then
+            eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${project_type}. Séléctionner au moins un template si Laravel Sail n'est pas utilisé"
+        fi
     fi
 
     return 0
@@ -122,19 +137,16 @@ clean_path_variable(){
     echo "$path"
 }
 
-# Note : Ne vérifie pas si les variables passées sont bien dans le template
-# $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
-# $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
-# $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
-# return bool
+
 copy_files_from_template() {
     export_json_config
     [ -z "${project_dir}" ] && eout "copy_files_from_template() : La variable '\$project_dir' doit être initialisée avant"
 
     local project_docker_dir_relative=$(jq -r ".${project_type}.settings.project_dockerfiles_dir" <<< "$JSON_CONFIG")
     project_docker_dir_relative="$(clean_path_variable "relative" "${project_docker_dir_relative}")"
-
     local project_docker_dir="${project_dir}/${project_docker_dir_relative}"
+
+
 
     echo "project docker dir : $project_docker_dir"
 }

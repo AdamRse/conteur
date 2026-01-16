@@ -1,30 +1,50 @@
 {
-    "laravel":{
-        "settings":{
-            "project_dockerfiles_dir":".docker/development"
-        }
-        ,"templates":{
-            "docker-compose.yml":{
-                "selected":true
-                ,"project_dir":""
-                ,"variables":{
-                    "PROJECT_NAME":"${PROJECT_NAME}"
+    "settings":{
+        "default_projects_dir":""
+    }
+    ,"project_type":{
+        "laravel":{
+            "settings":{
+                "project_dockerfiles_dir":".docker/development"
+                ,"sail":{
+                    "useSail":"fasle"
+                    ,"devcontainer":true
+                    ,"options":{
+                        "mysql":false
+                        ,"pgsql":false
+                        ,"mariadb":false
+                        ,"redis":false
+                        ,"memcached":false
+                        ,"meilisearch":false
+                        ,"minio":false
+                        ,"selenium":false
+                        ,"mailpit":false
+                    }
                 }
             }
-            ,"Dockerfile":{
-                "selected":true
-                ,"project_dir":"./"
-                ,"variables":{
-                    "PROJECT_NAME":"${PROJECT_NAME}"
-                    ,"PHP_VERSION":"${PHP_VERSION}"
+            ,"templates":{
+                "docker-compose.yml":{
+                    "selected":false
+                    ,"project_dir":""
+                    ,"variables":{
+                        "PROJECT_NAME":"${PROJECT_NAME}"
+                    }
                 }
-            }
-            ,"nginx.conf":{
-                "selected":true
-                ,"project_dir":""
-                ,"variables":{
-                    "PROJECT_NAME":"${PROJECT_NAME}"
-                    ,"PHP_VERSION":"${PHP_VERSION}"
+                ,"Dockerfile":{
+                    "selected":true
+                    ,"project_dir":"./"
+                    ,"variables":{
+                        "PROJECT_NAME":"${PROJECT_NAME}"
+                        ,"PHP_VERSION":"${PHP_VERSION}"
+                    }
+                }
+                ,"nginx.conf":{
+                    "selected":false
+                    ,"project_dir":""
+                    ,"variables":{
+                        "PROJECT_NAME":"${PROJECT_NAME}"
+                        ,"PHP_VERSION":"${PHP_VERSION}"
+                    }
                 }
             }
         }
