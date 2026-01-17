@@ -168,29 +168,53 @@ copy_files_from_template() {
 # $2                : config                    : JSON config attaché au template. Par exemple : .project_type.laravel.templates.<fichier>[]
 # $3 (optionnel)    : project_docker_files_dir  : Répertoire dans le projet où ranger les fichiers par défaut. Indiqué dans JSON de config : project_type.laravel.settings.project_docker_files_dir
 # $4 (optionnel)    : l_project_dir             : Répertoire du projet, variable globale $project_dir par défaut
-# return 
+# return message+true|message+false
 copy_file() {
     local name="${1}"
     local config="${2}"
     local project_docker_files_dir="${3}"
     local l_project_dir="${4:-$project_dir}"
+
     [ -z "${name}" ] && fout "copy_file() : Aucun nom de template passé." && return 1
     [ -z "${config}" ] && fout "copy_file() : Aucune configuration passée pour la copie du template ${name}." && return 1
     [ -d "${l_project_dir}" ] || fout "copy_file() : Le répertoire de projet n'existe pas encore dans '${l_project_dir}'." && return 1
     is_json_var "${config}" || fout "copy_file() : Le json de configuration n'est pas conforme :\n${config}" && return 1
-    local custom_path="$(jq -r ".project_dir" <<< "${config}")"
-    local template_path="$(find_template_from_name "${name}")" || fout "copy_file() : Template de ${name} non trouvé." && return 1
-    local project_file_path="$(get_project_file_path "${name}" "${project_docker_files_dir}" "${custom_path}")"
 
     debug_ "Traitement du template : $name"
     # On peut ensuite extraire des données spécifiques de la configuration du template
     local selected=$(jq -r '.selected' <<< "${config}")
     if [ "${selected}" = true ]; then
+        local custom_path="$(jq -r ".project_dir" <<< "${config}")"
+        local template_path="$(find_template_from_name "${name}")" || fout "copy_file() : Template de ${name} non trouvé." && return 1
+        local project_file_path="$(get_project_file_path "${name}" "${project_docker_files_dir}" "${custom_path}")"
+        local exported_vars_list="$(export_vars_list "${config}")"
+
         debug_ "Lancement de la copie"
+        if [ -z "${exported_vars_list}" ]; then
+            if cp "${template_path}" "${project_file_path}"; then
+                sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
+                return 0
+            fi
+            fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${project_file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
+            return 1
+        else
+            if envsubst "${exported_vars_list}" < "${template_path}" > "${project_file_path}"; then
+                sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
+                return 0
+            fi
+            fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${project_file_path}'\n\t\ta échouée."
+            return 1
+        fi
     else
         debug_ "Le template ${name} est ignoré."
     fi
     project_dir=$(echo "$configuration" | jq -r '.project_dir')
+}
+
+# $1 : json_var_list    : Tableau json contenant les variables à exporter dans config/default.json : project_type.<project_type>.templates.<fichier>.variables[]
+# return string+true|error+false
+export_vars_list(){
+    echo "A venir"
 }
 
 # $1 : file_name                            : Le nom du fichier à copier

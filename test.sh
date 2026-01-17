@@ -19,8 +19,10 @@ debug_ "DEBUG MODE ON"
 #copy_files_from_template
 
 jsn=$(merge_config_json)
+var_list="$(jq '.project_type.laravel.templates.Dockerfile.variables' <<< "$jsn")"
+echo $var_list
 #echo "$jsn"
-get_project_file_path "Zala.pb" ".dockerfile/dev" "oui/oui"
+export_vars_list "$var_list"
 # copy_files_from_template "$jsn"
 
 # zala="zal"
