@@ -12,27 +12,18 @@ project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
-#source "${script_dir}/lib/laravel.lib.sh"
+source "${script_dir}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-#copy_files_from_template
 
-jsn=$(merge_config_json)
-var_list="$(jq '.project_type.laravel.templates.Dockerfile.variables' <<< "$jsn")"
-echo $var_list
-#echo "$jsn"
-export_vars_list "$var_list"
-# copy_files_from_template "$jsn"
+export_json_config
+copy_files_from_template
 
-# zala="zal"
-# name="zala"
-# export $name
-
-# if declare -p zala 2>/dev/null | grep -q '^declare -x'; then
-#     echo "La variable zala est exportée"
+# if declare -p Zala 2>/dev/null | grep -q '^declare -x'; then
+#     echo "La variable Zala est exportée : $Zala"
 # else
-#     echo "La variable zala n'est pas exportée"
+#     echo "La variable Zala n'est pas exportée"
 # fi
 
 # lout "lout"

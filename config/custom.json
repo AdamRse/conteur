@@ -6,7 +6,7 @@
                     "variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                         ,"PHP_VERSION":"${PHP_VERSION}"
-                        ,"ZALA":"Love ya"
+                        ,"Zala":"Zala da ja ya"
                     }
                 }
             }

@@ -146,7 +146,7 @@ clean_path_variable(){
 # $1(Optionnel) : json_config  : json de configuration, apr défaut prend une variable exportée
 copy_files_from_template() {
     local json_config=${1:-$JSON_CONFIG}
-    [ -z "${json_config}" ] && eout "copy_files_from_template() : Le JSON de configuration n'a pas été trouvé."
+    [ -z "${json_config}" ] && eout "copy_files_from_template() : Le JSON de configuration n'a pas été trouvé. Utiliser export_json_config() pour rendre la config globale ou passez là en paramètre."
     [ -z "${project_dir}" ] && eout "copy_files_from_template() : La variable '\$project_dir' doit être initialisée avant."
     [ -d "${project_dir}" ] || eout "copy_files_from_template() : Le projet n'a pas été créé, créer le projet avant de faire appel à cette fonction."
     check_json_config_integrity "${json_config}"
@@ -154,12 +154,16 @@ copy_files_from_template() {
 
     local project_docker_dir_relative=$(jq -r ".project_type.${project_type}.settings.project_docker_files_dir" <<< "$json_config")
     local project_docker_dir="$(clean_path_variable "absolute" "${project_dir}/${project_docker_dir_relative}")"
+    debug_ "copy_files_from_template() : Vérification des calculs de variables.\n\
+        \$project_docker_dir_relative=${project_docker_dir_relative}\n\
+        \$project_docker_dir=${project_docker_dir}"
 
-    if [ -d "${project_docker_dir}" ]; then
+    if [ ! -d "${project_docker_dir}" ]; then
         mkdir -p "${project_docker_dir}" || eout "copy_files_from_template() : droits insufisants pour créer le répertoire de templates '${project_docker_dir}'"
     fi
 
     jq -r --arg type "${project_type}" '.project_type[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
+        debug_ "Boucle de copie, appel de copy_file()"
         copy_file "${name}" "${configuration}" "${project_docker_dir}"
     done
 }
@@ -179,17 +183,27 @@ copy_file() {
     [ -z "${config}" ] && fout "copy_file() : Aucune configuration passée pour la copie du template ${name}." && return 1
     [ -d "${l_project_dir}" ] || fout "copy_file() : Le répertoire de projet n'existe pas encore dans '${l_project_dir}'." && return 1
     is_json_var "${config}" || fout "copy_file() : Le json de configuration n'est pas conforme :\n${config}" && return 1
+    
+    debug "copy_file() Résumée des paramètres reçu :\n\t\t\
+        \$name=${name}\n\t\t\
+        \$config=${config}\n\t\t\
+        \$project_docker_files_dir=${project_docker_files_dir}\n\t\t\
+        \$l_project_dir=${l_project_dir}"
 
-    debug_ "Traitement du template : $name"
     # On peut ensuite extraire des données spécifiques de la configuration du template
     local selected=$(jq -r '.selected' <<< "${config}")
     if [ "${selected}" = true ]; then
+        debug_ "Lancement de la copie"
         local custom_path="$(jq -r ".project_dir" <<< "${config}")"
         local template_path="$(find_template_from_name "${name}")" || fout "copy_file() : Template de ${name} non trouvé." && return 1
         local project_file_path="$(get_project_file_path "${name}" "${project_docker_files_dir}" "${custom_path}")"
-        local exported_vars_list="$(export_vars_list "${config}")"
+        export_vars_list "${config}" # Rend EXPORTED_VARS accessibe
+        debug_ "Résumée du calcul de variables pour la copie :\n\t\t\
+            \$custom_path=${custom_path}\n\t\t\
+            \$template_path=${template_path}\n\t\t\
+            \$project_file_path=${project_file_path}\n\t\t\
+            \$EXPORTED_VARS=${EXPORTED_VARS}"
 
-        debug_ "Lancement de la copie"
         if [ -z "${exported_vars_list}" ]; then
             if cp "${template_path}" "${project_file_path}"; then
                 sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
@@ -198,7 +212,7 @@ copy_file() {
             fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${project_file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
             return 1
         else
-            if envsubst "${exported_vars_list}" < "${template_path}" > "${project_file_path}"; then
+            if envsubst "${EXPORTED_VARS}" < "${template_path}" > "${project_file_path}"; then
                 sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
                 return 0
             fi
@@ -206,15 +220,36 @@ copy_file() {
             return 1
         fi
     else
-        debug_ "Le template ${name} est ignoré."
+        lout "Le template ${name} est ignoré (json config : selected:false)"
+        return 0
     fi
-    project_dir=$(echo "$configuration" | jq -r '.project_dir')
 }
 
 # $1 : json_var_list    : Tableau json contenant les variables à exporter dans config/default.json : project_type.<project_type>.templates.<fichier>.variables[]
 # return string+true|error+false
 export_vars_list(){
-    echo "A venir"
+    local json_var_list="${1}"
+    EXPORTED_VARS=()
+
+    if [[ "$BASHPID" -ne "$$" ]]; then
+        echo "export_vars_list() doit être appelée directement, pas via \$(...), sinon impossible d'exporter les variables. la fonction rend disponnible une variable EXPORTED_VARS qui contient le nom des variables exportées" >&2
+        return 1
+    fi
+
+    [ -z "${json_var_list}" ] && eout "export_vars_list() : Aucune variable envoyée en premier paramètre" && return 1
+    is_json_var "${json_var_list}" || eout "export_vars_list() : La variable envoyé en premier paramètre n'est pas un JSON" && return 1
+
+    while IFS="=" read -r key value; do
+        local interpreted_value
+        interpreted_value=$(eval "echo \"$value\"")
+
+        if [[ -n "$interpreted_value" ]]; then
+            export "$key"="$interpreted_value"
+            EXPORTED_VARS+=("$key")
+        fi
+    done < <(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' <<< "$json_var_list")
+
+    echo "${EXPORTED_VARS[*]}"
 }
 
 # $1 : file_name                            : Le nom du fichier à copier
