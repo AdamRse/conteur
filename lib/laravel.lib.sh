@@ -1,7 +1,7 @@
 # -- GLOBALS AVAILABLES --
 # Variables globales utilisables dans le json de configuration config/custom.json et config/default.json
 # ${LARAVEL_VERSION} : Dernière version stable de Laravel
-# ${PHP_VERSION} : Version de PHP associée à lla dernière version stable de laravel
+# ${PHP_VERSION} : Version de PHP associée à la dernière version stable de laravel
 
 # -- LARAVEL VARS --
 
