@@ -16,9 +16,7 @@ source "${script_dir}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-
-export_json_config
-copy_files_from_template
+echo "SERVICES : $(laravel_sail_get_services_in_array)"
 
 # if declare -p Zala 2>/dev/null | grep -q '^declare -x'; then
 #     echo "La variable Zala est exportée : $Zala"

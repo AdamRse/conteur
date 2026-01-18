@@ -9,7 +9,7 @@
                 ,"sail":{
                     "useSail":"false"
                     ,"devcontainer":true
-                    ,"options":{
+                    ,"services":{
                         "mysql":false
                         ,"pgsql":false
                         ,"mariadb":false

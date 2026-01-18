@@ -47,6 +47,7 @@ is_json_var(){
 }
 
 # Utilisable avec un pipe
+# $1 : filter   : pattern jq pour cibler le booléen à tester
 # return "bool"|empty
 parse_jq_bool() {
     local filter="$1"
@@ -57,6 +58,20 @@ parse_jq_bool() {
         elif . == false or . == \"false\" or . == 0 or . == \"0\" then false
         else empty
         end"
+}
+
+# Donne un "true" ou "false" en checkant les multiples syntaxes possibles. A utiliser pour unifier la valeur d'un booléen dans un json
+# Utilisable avec un pipe
+# return "bool"|empty
+return_unified_json_bool(){
+    local boolean="$(cat)"
+    if [ "$boolean" = "true" ] || [ "$boolean" = "1" ] || [ "$boolean" = "\"true\"" ] || [ "$boolean" = "\"1\"" ]; then
+        echo "true"
+    elif [ "$boolean" = "false" ] || [ "$boolean" = "0" ] || [ "$boolean" = "\"false\"" ] || [ "$boolean" = "\"0\"" ]; then
+        echo "false"
+    else
+        echo ""
+    fi
 }
 
 # $1 : json_test : Chaîne de config JSON à tester

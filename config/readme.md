@@ -34,7 +34,7 @@ J'ai un template `Dockerfile.template` dans lequel je veux créer une image à p
         - `sail` : Configurations de laravel Sail au lieu d'utiliser le système de templates. Si `false`, aucune des option sail ne seront lues.
             - `useSail` : Booléen, configurations de laravel Sail au lieu d'utiliser le système de templates
             - `devcontainer` : Booléen, ajout de decontainer au projet
-            - `options` : Options relatives à la création d'un projet via laravel sail, quelle base techno utiliser.
+            - `services` : Options relatives à la création d'un projet via laravel sail, quelle base techno utiliser.
                 - `mysql` : Booléen, utiliser mysql
                 - `pgsql` : Booléen, utiliser pgsql
                 - `mariadb` : Booléen, utiliser mariadb
