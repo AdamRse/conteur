@@ -1,3 +1,8 @@
+# -- GLOBALS AVAILABLES --
+# Variables globales utilisables dans le json de configuration config/custom.json et config/default.json
+# ${LARAVEL_VERSION} : Dernière version stable de Laravel
+# ${PHP_VERSION} : Version de PHP associée à lla dernière version stable de laravel
+
 # -- LARAVEL VARS --
 
 laravel_script_name=$(basename $0)
@@ -82,6 +87,6 @@ PHP_VERSION=$(jq -r '.PHP_VERSION' <<< $laravel_latest_requirements)
 LARAVEL_VERSION=$(jq -r '.LARAVEL_VERSION' <<< $laravel_latest_requirements)
 sout "Version trouvées, laravel ${LARAVEL_VERSION} et PHP ${PHP_VERSION}"
 
-lout "Vérification du contenu des variables"
+lout "Laravel : Vérification du contenu des variables"
 laravel_check_requirments
 

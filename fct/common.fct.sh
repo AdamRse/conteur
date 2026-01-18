@@ -201,15 +201,16 @@ copy_file() {
             fout "copy_file() : Template de ${name} non trouvé."
             return 1
         fi
+        local variables_list_json="$(jq ".variables" <<< "${config}")"
         local project_file_path="$(get_project_file_path "${name}" "${project_docker_files_dir}" "${custom_path}")"
-        export_vars_list "${config}" # Rend EXPORTED_VARS accessibe
+        export_vars_list "${variables_list_json}" # Rend EXPORTED_VARS accessible, l'export ne fonctionne pas dans un sous-shell avec $() pour récupérer les variables exportées
         debug_ "Résumée du calcul de variables pour la copie :
             \$custom_path=${custom_path}
             \$template_path=${template_path}
             \$project_file_path=${project_file_path}
             \$EXPORTED_VARS=${EXPORTED_VARS}"
 
-        if [ -z "${exported_vars_list}" ]; then
+        if [ ${#EXPORTED_VARS[@]} -eq 0 ]; then
             if cp "${template_path}" "${project_file_path}"; then
                 sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
                 return 0
@@ -234,27 +235,29 @@ copy_file() {
 # return string+true|error+false
 export_vars_list(){
     local json_var_list="${1}"
-    EXPORTED_VARS=()
+    local exported_vars_array=()
+    export EXPORTED_VARS
 
-    if [[ "$BASHPID" -ne "$$" ]]; then
-        echo "export_vars_list() doit être appelée directement, pas via \$(...), sinon impossible d'exporter les variables. la fonction rend disponnible une variable EXPORTED_VARS qui contient le nom des variables exportées" >&2
-        return 1
-    fi
+    debug_ "export_vars_list() appelé, avec les paramètres :\n\
+        \$json_var_list=${json_var_list}"
 
     [ -z "${json_var_list}" ] && eout "export_vars_list() : Aucune variable envoyée en premier paramètre" && return 1
     ! is_json_var "${json_var_list}" && eout "export_vars_list() : La variable envoyé en premier paramètre n'est pas un JSON" && return 1
 
+    debug_ "lecture du JSON"
     while IFS="=" read -r key value; do
         local interpreted_value
         interpreted_value=$(eval "echo \"$value\"")
+        debug_ "Valeur trouvée : ${interpreted_value}"
 
         if [[ -n "$interpreted_value" ]]; then
+            debug_ "Export de ${key}:${interpreted_value}"
             export "$key"="$interpreted_value"
-            EXPORTED_VARS+=("$key")
+            exported_vars_array+=("\$${key}")
         fi
     done < <(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' <<< "$json_var_list")
-
-    echo "${EXPORTED_VARS[*]}"
+    EXPORTED_VARS="${exported_vars_array[*]}"
+    debug_ "Variables exportées : ${EXPORTED_VARS}"
 }
 
 # $1 : file_name                            : Le nom du fichier à copier
