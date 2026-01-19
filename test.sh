@@ -5,9 +5,9 @@ script_dir=$(dirname "$script_path")
 
 DEBUG_MODE=true
 
-project_dir="$PWD"
-project_name="conteur"
-project_path="$PJ"
+project_dir="$PJ"
+project_name="mon_projet"
+project_path="$PWD"
 project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
@@ -16,7 +16,7 @@ source "${script_dir}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-echo "SERVICES : $(laravel_sail_get_services_in_array)"
+laravel_create_sail_project
 
 # if declare -p Zala 2>/dev/null | grep -q '^declare -x'; then
 #     echo "La variable Zala est exportée : $Zala"

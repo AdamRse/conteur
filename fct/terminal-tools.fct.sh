@@ -23,35 +23,35 @@ S_END=$(tput sgr0)              # Balise de fin de styles
 lout(){
     local message=$1
     [ -z "$message" ] && echo "lout() : Aucun paramètre passé pour message" >&2
-    echo -e "${S_INFO}[INFO]${S_END} $message"
+    echo -e "${S_INFO}[INFO]${S_END}\t${message}"
 }
 
 # Success
 sout(){
     local message=$1
     [ -z "$message" ] && echo "sout() : Aucun paramètre passé pour message" >&2
-    echo -e "${S_SUCCESS}[SUCCESS]${S_END} $message ${S_SUCCESS}✓${S_END}"
+    echo -e "${S_SUCCESS}[ :D ]${S_END}\t${message} ${S_SUCCESS}✓${S_END}"
 }
 
 # Warning, le script continue
 wout(){
     local message=$1
     [ -z "$message" ] && echo "wout() : Aucun paramètre passé pour message" >&2
-    echo -e "${S_WARNING}[WARNING]${S_END} $message" >&2
+    echo -e "${S_WARNING}[WARN]${S_END}\t${message}" >&2
 }
 
 # Fail, erreur mais le script continue
 fout(){
     local message=$1
     [ -z "$message" ] && echo "fout() : Aucun paramètre passé pour message" >&2
-    echo -e "${S_ERROR}[FAIL]${S_END} $message" >&2
+    echo -e "${S_ERROR}[FAIL]${S_END}\t${message}" >&2
 }
 
 # Erreur, arrête le script
 eout(){
     local message=$1
     [ -z "$message" ] && echo "eout() : Aucun paramètre passé pour message" >&2
-    echo -e "${S_ERROR}[ERROR]${S_END} $message" >&2
+    echo -e "${S_ERROR}[ERROR]${S_END}\t${message}" >&2
     exit 1
 }
 
@@ -60,7 +60,7 @@ debug_(){
     if $debug_mode; then
         local message=$1
         [ -z "$message" ] && echo "debug_() : Aucun paramètre passé pour message" >&2
-        echo -e "[DEBUG] $message"
+        echo -e "[DEBUG]\t${message}"
     fi
 }
 

@@ -75,24 +75,38 @@ laravel_create_sail_project(){
     local url_sail_bash_execute="https://laravel.build/${project_name}"
     local services_url=""
     local services_text=""
+    debug_ "laravel_create_sail_project() : calcul des variables :
+        \$devcontainer=$devcontainer
+        \$services_array=$services_array
+        \$url_sail_bash_execute=$url_sail_bash_execute"
+
+    if [ -z "${services_array}" ]; then
+        if ! ask_yn "Attention ! Aucun service n'a été sélectionné pour le projet laravel, mais Laravel Sail fournit des services par défaut si aucun n'est sélectionné. Ajouter un moin 1 service dans 'config/custom.json' pour ne pas avoir les services par défaut de Laravel Sail. Continuer avec les service par défaut de Laravel Sail ?"; then
+            lout "Arrêt demmandé par l'utilisateur."
+            exit 0
+        fi
+    fi
+
     for service in $services_array; do
-        if [ -n "$service" ]; then
+        if [ -n "${service}" ]; then
             if [ -z "${services_url}" ]; then
                 services_url="?with=${service}"
                 services_text="${service}"
             else
-                services_url=",${service}"
+                services_url="${services_url},${service}"
                 services_text="${services_text}, ${service}"
             fi
         fi
     done
 
     [ -n "${services_url}" ] && url_sail_bash_execute="${url_sail_bash_execute}${services_url}"
+
     if [ $devcontainer = true ]; then
+        debug_ "ajouter l'option dev container"
         if [ -n "${services_url}" ]; then
-            services_url="${services_url}&devcontainer"
+            url_sail_bash_execute="${url_sail_bash_execute}&devcontainer"
         else
-            services_url="${services_url}?devcontainer"
+            url_sail_bash_execute="${url_sail_bash_execute}?devcontainer"
         fi
     elif [ $devcontainer = false ]; then
         debug_ "Option devcontainer non ajoutée"
@@ -101,11 +115,13 @@ laravel_create_sail_project(){
     fi
 
     cd "${project_dir}" || eout "Impossible d'atteindre '${project_dir}', vérifiez les privilèges."
-    if curl -s "${url_sail_bash_execute}" | bash; then
-        sout "Le projet ${project_name} a bien été créé avec laravel sail !\n\t\tServices installés :\n\t\t${services_text:-"Aucun"}"
-    else
-        eout "L'execution du script bash de laravel sail renvoie une erreur."
-    fi
+
+    lout "Execution de la requête : ${url_sail_bash_execute}\n\tRépertoire du projet : '${project_dir}'"
+    # if curl -s "${url_sail_bash_execute}" | bash; then
+    #     sout "Le projet ${project_name} a bien été créé avec laravel sail !\n\t\tServices installés :\n\t\t${services_text:-"Aucun"}"
+    # else
+    #     eout "L'execution du script bash de laravel sail renvoie une erreur."
+    # fi
 }
 
 laravel_sail_get_services_in_array() {

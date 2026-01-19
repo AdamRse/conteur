@@ -6,9 +6,9 @@ project_type="laravel"  # DEBUG, à remplacer par une option
 
 script_path=$(readlink -f "$0")
 script_dir=$(dirname "$script_path")
+project_path=false
 project_dir="$PWD"
 project_name=false
-project_path=false
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
 source "${script_dir}/fct/common.fct.sh"
@@ -29,7 +29,7 @@ sout "Toutes les dépendances sont satisfaites"
 set_directory
 debug_ "Répertoire du projet dans ${project_dir}"
 project_path="${project_dir}/${project_name}"
-debug_ "Projet dans ${project_path}"
+debug_ "Répertoire du projet dans ${project_path}"
 
 check_project_type
 debug_ "Type de projet '${project_type}' validé"
