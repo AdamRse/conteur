@@ -25,6 +25,21 @@ set_directory() {
     fi
 }
 
+# Utilisable avec pipe
+# $1 : dir  : chemin absolu du répertoire
+# return bool
+is_empty_dir(){
+    local dir="${1-$(cat)}"
+    [ -z "${dir}" ] && eout "is_empty_dir() : Aucun paramètre donné. Passer le chemin absolu d'un répertoire à tester en paramètre."
+    [ -d "${dir}" ] || return 0
+
+    if [ -z "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # return bool
 check_project_type() {
     [ -z "$1" ] && eout "check_project_type() : Aucun nom de projet passé."

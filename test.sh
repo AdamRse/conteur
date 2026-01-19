@@ -6,8 +6,8 @@ script_dir=$(dirname "$script_path")
 DEBUG_MODE=true
 
 project_dir="$PJ"
-project_name="mon_projet"
-project_path="$PWD"
+project_name="test-conteur"
+project_path="$project_dir/$project_name"
 project_type="laravel"
 
 source "${script_dir}/fct/terminal-tools.fct.sh"
