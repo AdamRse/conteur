@@ -2,7 +2,7 @@
     "settings":{
         "default_projects_dir":""
     }
-    ,"project_type":{
+    ,"PROJECT_TYPE":{
         "laravel":{
             "settings":{
                 "project_docker_files_dir":".docker/development"
@@ -25,14 +25,14 @@
             ,"templates":{
                 "docker-compose.yml":{
                     "selected":false
-                    ,"project_dir":""
+                    ,"PROJECTS_DIR":""
                     ,"variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                     }
                 }
                 ,"Dockerfile":{
                     "selected":true
-                    ,"project_dir":"./"
+                    ,"PROJECTS_DIR":"./"
                     ,"variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                         ,"PHP_VERSION":"${PHP_VERSION}"
@@ -40,7 +40,7 @@
                 }
                 ,"nginx.conf":{
                     "selected":false
-                    ,"project_dir":""
+                    ,"PROJECTS_DIR":""
                     ,"variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                         ,"PHP_VERSION":"${PHP_VERSION}"

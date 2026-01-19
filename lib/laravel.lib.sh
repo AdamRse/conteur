@@ -6,21 +6,21 @@
 # -- LARAVEL VARS --
 
 laravel_script_name=$(basename $0)
-docker_cmd_path="${script_dir}/templates/laravel/cmd.docker.sh"
+docker_cmd_path="${MAIN_SCRIPT_DIR}/templates/laravel/cmd.docker.sh"
 
 # variables export pour template
 export PHP_VERSION=""
 export LARAVEL_VERSION=""
-export PROJECT_NAME=${project_name}
+export PROJECT_NAME
 
 # -- FUNCTIONS --
 
 # Prépare les variables et vérifie les fichiers de configuration
 # return null
 laravel_check_requirments() {
-    [ -d "${script_dir}" ] || eout "La variable 'script_dir' doit être initialisée avant l'appel de ${laravel_script_name}"
-    [ -n "${project_path}" ] || eout "La variable 'project_path' doit être initialisée avant l'appel de ${laravel_script_name}"
-    [ -n "${project_name}" ] || eout "La variable 'project_name' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "La variable 'MAIN_SCRIPT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${PROJECT_PATH}" ] || eout "La variable 'PROJECT_PATH' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${PROJECT_NAME}" ] || eout "La variable 'PROJECT_NAME' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PHP_VERSION}" ] || eout "La variable 'PHP_VERSION' doit être initialisée."
     [ -n "${LARAVEL_VERSION}" ] || eout "La variable 'LARAVEL_VERSION' doit être initialisée."
     [ -n "${LARAVEL_VERSION}" ] || eout "La variable 'LARAVEL_VERSION' doit être initialisée."
@@ -30,12 +30,8 @@ laravel_check_requirments() {
 
 # return empty|exit
 check_project_path(){
-    if [ -d "${project_path}" ]; then
-        if $(! is_empty_dir "${project_path}"); then
-            eout "Le répertoire ${project_path} n'est pas vide. Supprimez-le, supprimez son contenu ou changez le nom du projet avant de continuer."
-        fi
-    else
-        mkdir -p "${project_path}" || eout "Impossible de créer le répertoire de projet '${${project_path}}'. Vérifier les droits d'accès."
+    if [ -d "${PROJECT_PATH}" ]; then
+        eout "Le répertoire ${PROJECT_PATH} existe déjà. Supprimez-le, ou changez le nom du projet avant de relancer le script."
     fi
 }
 
@@ -64,13 +60,13 @@ laravel_get_json_latest_info() {
 }
 
 use_sail(){
-    echo "$(parse_jq_bool ".project_type.laravel.settings.sail.useSail" <<< "${JSON_CONFIG}")"
+    echo "$(parse_jq_bool ".PROJECT_TYPE.laravel.settings.sail.useSail" <<< "${JSON_CONFIG}")"
 }
 
 laravel_create_sail_project(){
-    local devcontainer="$(parse_jq_bool ".project_type.laravel.settings.sail.devcontainer" <<< "${JSON_CONFIG}")"
+    local devcontainer="$(parse_jq_bool ".PROJECT_TYPE.laravel.settings.sail.devcontainer" <<< "${JSON_CONFIG}")"
     local services_array="$(laravel_sail_get_services_in_array)"
-    local url_sail_bash_execute="https://laravel.build/${project_name}"
+    local url_sail_bash_execute="https://laravel.build/${PROJECT_NAME}"
     local services_url=""
     local services_text=""
     debug_ "laravel_create_sail_project() : calcul des variables :
@@ -109,14 +105,15 @@ laravel_create_sail_project(){
     elif [ $devcontainer = false ]; then
         debug_ "Option devcontainer non ajoutée"
     else
-        wout "Option devcontainer ambigue, JSON de configuration : 'project_type.laravel.settings.sail.devcontainer' doit être un booléen."
+        wout "Option devcontainer ambigue, JSON de configuration : 'PROJECT_TYPE.laravel.settings.sail.devcontainer' doit être un booléen."
     fi
 
-    cd "${project_dir}" || eout "Impossible d'atteindre '${project_dir}', vérifiez les privilèges."
+    cd "${PROJECTS_DIR}" || eout "Impossible d'atteindre '${PROJECTS_DIR}', vérifiez les privilèges."
 
-    lout "Execution de la requête : ${url_sail_bash_execute}\n\tRépertoire du projet : '${project_dir}'"
-    if curl -s "${url_sail_bash_execute}" | bash; then
-        sout "Le projet ${project_name} a bien été créé avec laravel sail !\n\t\tServices installés :\n\t\t${services_text:-"Aucun"}"
+    lout "Execution de la requête : ${url_sail_bash_execute}\n\tRépertoire des projets : '${PROJECT_PATH}'"
+    curl -s "${url_sail_bash_execute}" | bash
+    if [ $? -eq 0 ]; then
+        sout "Le projet ${PROJECT_NAME} a bien été créé avec laravel sail !\n\tServices installés :\n\t${services_text:-"Aucun"}"
     else
         eout "L'execution du script bash de laravel sail renvoie une erreur."
     fi
@@ -132,7 +129,7 @@ laravel_sail_get_services_in_array() {
         if [ "${is_enabled}" = true ]; then
             enabled_services="$enabled_services $service_name"
         fi
-    done < <(jq -r '.project_type.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
+    done < <(jq -r '.PROJECT_TYPE.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
 
     echo $enabled_services
 }

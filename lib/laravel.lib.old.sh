@@ -3,29 +3,29 @@
 laravel_script_name=$(basename $0)
 
 # templates
-dockerfile_template_path="${script_dir}/templates/laravel/default/Dockerfile.template"
-docker_compose_template_path="${script_dir}/templates/laravel/default/docker-compose.yml.template"
-nginx_template_path="${script_dir}/templates/laravel/default/nginx.conf.template"
+dockerfile_template_path="${MAIN_SCRIPT_DIR}/templates/laravel/default/Dockerfile.template"
+docker_compose_template_path="${MAIN_SCRIPT_DIR}/templates/laravel/default/docker-compose.yml.template"
+nginx_template_path="${MAIN_SCRIPT_DIR}/templates/laravel/default/nginx.conf.template"
 
 # fichiers du projet
-project_docker_dir="${project_path}/.docker/development"
+project_docker_dir="${PROJECT_PATH}/.docker/development"
 project_dockerfile_path="${project_docker_dir}/Dockerfile"
-project_docker_compose_path="${project_path}/docker-compose.yml"
+project_docker_compose_path="${PROJECT_PATH}/docker-compose.yml"
 project_nginx_path="${project_docker_dir}/nginx.conf"
 
 # variables export pour template
 export PHP_VERSION=""
 export LARAVEL_VERSION=""
-export PROJECT_NAME=${project_name}
+export PROJECT_NAME=${PROJECT_NAME}
 
 # -- FUNCTIONS --
 
 # Prépare les variables et vérifie les fichiers de configuration
 # return null
 laravel_check_requirments() {
-    [ -d "${script_dir}" ] || eout "La variable 'script_dir' doit être initialisée avant l'appel de ${laravel_script_name}"
-    [ -n "${project_path}" ] || eout "La variable 'project_path' doit être initialisée avant l'appel de ${laravel_script_name}"
-    [ -n "${project_name}" ] || eout "La variable 'project_name' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "La variable 'MAIN_SCRIPT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${PROJECT_PATH}" ] || eout "La variable 'PROJECT_PATH' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -n "${PROJECT_NAME}" ] || eout "La variable 'PROJECT_NAME' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -f "${dockerfile_template_path}" ] || eout "Template dockerfile non trouvé dans ${dockerfile_template_path}"
     [ -f "${nginx_template_path}" ] || eout "Template de configuration nginx non trouvé dans ${nginx_template_path}"
     [ -f "${docker_compose_template_path}" ] || eout "Template docker-compose non trouvé dans ${docker_compose_template_path}"

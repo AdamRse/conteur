@@ -1,18 +1,19 @@
 #!/bin/bash
 
-script_path=$(readlink -f "$0")
-script_dir=$(dirname "$script_path")
+MAIN_SCRIPT_PATH=$(readlink -f "$0")
+MAIN_SCRIPT_DIR=$(dirname "$MAIN_SCRIPT_PATH")
 
 DEBUG_MODE=true
 
-project_dir="$PJ"
-project_name="test-conteur"
-project_path="$project_dir/$project_name"
-project_type="laravel"
+PROJECTS_DIR="$PJ"
+MAIN_PID=$$
+PROJECT_NAME="test-conteur"
+PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
+PROJECT_TYPE="laravel"
 
-source "${script_dir}/fct/terminal-tools.fct.sh"
-source "${script_dir}/fct/common.fct.sh"
-source "${script_dir}/lib/laravel.lib.sh"
+source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
+source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
+source "${MAIN_SCRIPT_DIR}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"

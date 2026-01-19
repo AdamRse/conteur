@@ -1,23 +1,24 @@
 #!/bin/bash
 
 DEBUG_MODE=true
-project_type="laravel"  # DEBUG, à remplacer par une option
-                        # DOIT CORRESPONDRE À UN RÉPERTOIRE DANS ./templates/$project_type/ ET DANS lib/$project_type.lib.sh
+PROJECT_TYPE="laravel"  # DEBUG, à remplacer par une option
+                        # DOIT CORRESPONDRE À UN RÉPERTOIRE DANS ./templates/$PROJECT_TYPE/ ET DANS lib/$PROJECT_TYPE.lib.sh
 
-script_path=$(readlink -f "$0")
-script_dir=$(dirname "$script_path")
-project_path=false
-project_dir="$PWD"
-project_name=false
+MAIN_SCRIPT_PATH=$(readlink -f "$0")
+MAIN_SCRIPT_DIR=$(dirname "$MAIN_SCRIPT_PATH")
+MAIN_PID=$$
+PROJECT_PATH=""
+PROJECTS_DIR="$PWD"
+PROJECT_NAME=""
 
-source "${script_dir}/fct/terminal-tools.fct.sh"
-source "${script_dir}/fct/common.fct.sh"
+source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
+source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
 
 # -- CHECKS --
 
 # Check set project name
 [ -z "${1}" ] && eout "Veillez nommer le projet"
-project_name="$1"
+PROJECT_NAME="$1"
 debug_ "Nom du projet : ${1}"
 
 # Check packages
@@ -27,15 +28,15 @@ sout "Toutes les dépendances sont satisfaites"
 
 # Check set project directory
 set_directory
-debug_ "Répertoire du projet dans ${project_dir}"
-project_path="${project_dir}/${project_name}"
-debug_ "Répertoire du projet dans ${project_path}"
+debug_ "Répertoire du projet dans ${PROJECTS_DIR}"
+PROJECT_PATH="${PROJECTS_DIR}/${PROJECT_NAME}"
+debug_ "Répertoire du projet dans ${PROJECT_PATH}"
 
-check_project_type
-debug_ "Type de projet '${project_type}' validé"
+check_PROJECT_TYPE
+debug_ "Type de projet '${PROJECT_TYPE}' validé"
 
 # -- MAIN --
 
-library="${project_type}.lib.sh"
-source "${script_dir}/lib/${library}"
+library="${PROJECT_TYPE}.lib.sh"
+source "${MAIN_SCRIPT_DIR}/lib/${library}"
 create_project # Polymorphisme de la bibliothèque importée au dessus

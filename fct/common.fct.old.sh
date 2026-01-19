@@ -21,18 +21,18 @@ set_directory() {
         if [ ! -d "${PJ}" ]; then
             wout "Le répertoire ${PJ} n'existe pas"
         fi
-        project_dir="$PJ"
+        PROJECTS_DIR="$PJ"
     fi
 }
 
 # return bool
-check_project_type() {
-    [ -z "$1" ] && eout "check_project_type() : Aucun nom de projet passé."
+check_PROJECT_TYPE() {
+    [ -z "$1" ] && eout "check_PROJECT_TYPE() : Aucun nom de projet passé."
 
-    local $project_name_check = $1
+    local $PROJECT_NAME_check = $1
 
-    [ -d "${script_dir}/templates/${project_name_check}" ] || eout "Type de projet ${project_name_check} inconnu. Aucun template associé pour ce type de projet."
-    [ -f "${script_dir}/lib/${project_name_check}.lib.sh" ] || eout "Type de projet ${project_name_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
+    [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_NAME_check}" ] || eout "Type de projet ${PROJECT_NAME_check} inconnu. Aucun template associé pour ce type de projet."
+    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_NAME_check}.lib.sh" ] || eout "Type de projet ${PROJECT_NAME_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
 }
 
 
@@ -65,7 +65,7 @@ conf_reader() {
 }
 
 # Note : Ne vérifie pas si les variables passées sont bien dans le template
-# $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$project_type/$nom.template
+# $1 : <name>             : obligatoire : Nom exact du fichier à copier. La fonction ira chercher dans ./templates/$PROJECT_TYPE/$nom.template
 # $2 : <output directory> : obligatoire : Répertoire absolu dans lequel copier le fichier (le nom est déduit de $1)
 # $3 : [variables name]   : optionnel   : Tableau (séparateur Espace) avec le nom des variables exclusives (sans le $) à remplacer dans le template. Sinon les variables trouvées sont remplacées par une chaîne vide dans le template.
 # return bool
@@ -77,18 +77,18 @@ copy_file_from_template() {
     local destination_file_path="${output_dir}/${file_name}"
     local envsubst_exported_vars="" # Export des variables et construction de $envsubst_exported_vars pour envsubst# Obtention du template associé à $file_name
     local template_name_possibilities_by_priority=( # Noms possible des templates à récupérer à partir du nom. PAR ORDRE DE PRIORITÉ
-        "${script_dir}/templates/${project_type}/custom/${file_name}.template"
-        "${script_dir}/templates/${project_type}/custom/${file_name}"
-        "${script_dir}/templates/${project_type}/default/${file_name}.template"
+        "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/custom/${file_name}.template"
+        "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/custom/${file_name}"
+        "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default/${file_name}.template"
     )
     local found_template_path=""
-    local conf_file_path="${script_dir}/templates/${project_type}/conf/${file_name}.conf"
+    local conf_file_path="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/conf/${file_name}.conf"
 
     # CHECKS
     [ -z "${file_name}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun nom de fichier donné en premier paramètre."
     [ -z "${output_dir}" ] && eout "copy_file_from_template() : Impossible de copier le template, aucun répertoire de sortie donné en deucième paramètre."
-    [ -z "${script_dir}" ] && eout "copy_file_from_template() : Variable 'script_dir' absente, elle doit être initialisée dans le script principal avec le chemin absolu du programme."
-    [ -z "${project_type}" ] && eout "copy_file_from_template() : Variable 'project_type' absente, elle doit être initialisée dans le script principal avec avec nom de répertoires dans ./templates."
+    [ -z "${MAIN_SCRIPT_DIR}" ] && eout "copy_file_from_template() : Variable 'MAIN_SCRIPT_DIR' absente, elle doit être initialisée dans le script principal avec le chemin absolu du programme."
+    [ -z "${PROJECT_TYPE}" ] && eout "copy_file_from_template() : Variable 'PROJECT_TYPE' absente, elle doit être initialisée dans le script principal avec avec nom de répertoires dans ./templates."
     if [ ! -f "${conf_file_path}" ]; then
         lout "Fichier de configuration introuvable à l'emplacement : ${conf_file_path}"
         conf_file_path=""
@@ -122,7 +122,7 @@ copy_file_from_template() {
         fi
         debug_ "Template ${template_path}, pas de correspondance avec ${file_name} ⤫"
     done
-    [ -z "${found_template_path}" ] && eout "copy_file_from_template() : Le nom du fichier donné en premier paramère '${file_name}' n'a aucun template associé dans './templates/${project_type}/custom ou default'. Abandon..."
+    [ -z "${found_template_path}" ] && eout "copy_file_from_template() : Le nom du fichier donné en premier paramère '${file_name}' n'a aucun template associé dans './templates/${PROJECT_TYPE}/custom ou default'. Abandon..."
     # --
 
     # Si des variables à exporter sont passées en 3ème paramètre, on les exporte et on les intègre dans la chaine qui servira
@@ -141,7 +141,7 @@ copy_file_from_template() {
         done
     fi
 
-    # Export des variables trouvées dans templates/$project_type/variables
+    # Export des variables trouvées dans templates/$PROJECT_TYPE/variables
     if [ -n "${conf_file_path}" ]; then
         debug_ "conf_reader() '${conf_file_path}' renvoie : ${array_conf_vars}"
         if local array_conf_vars=$(conf_reader "${conf_file_path}"); then
@@ -159,7 +159,7 @@ copy_file_from_template() {
                 done
             fi
         else
-            fout "Erreur lors de la récupération des variables du fichier de configuration associé à ${project_type} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
+            fout "Erreur lors de la récupération des variables du fichier de configuration associé à ${PROJECT_TYPE} : Le fichier '${conf_file_path}' renvoie une erreur, il n'est pas lisible pour l'interpreteur bash, vérifiez la syntaxe."
         fi
     else
         lout "Pas de fichier de configuration associé, aucune variable supplémentaire ne sera prise en compte"
