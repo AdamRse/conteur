@@ -16,7 +16,7 @@ source "${script_dir}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
-laravel_create_sail_project
+create_project
 
 # if declare -p Zala 2>/dev/null | grep -q '^declare -x'; then
 #     echo "La variable Zala est exportée : $Zala"

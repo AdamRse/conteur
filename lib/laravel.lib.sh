@@ -6,17 +6,7 @@
 # -- LARAVEL VARS --
 
 laravel_script_name=$(basename $0)
-
-# templates
-dockerfile_template_path="${script_dir}/templates/laravel/default/Dockerfile.template"
-docker_compose_template_path="${script_dir}/templates/laravel/default/docker-compose.yml.template"
-nginx_template_path="${script_dir}/templates/laravel/default/nginx.conf.template"
-
-# fichiers du projet
-project_docker_dir="${project_path}/.docker/development"
-project_dockerfile_path="${project_docker_dir}/Dockerfile"
-project_docker_compose_path="${project_path}/docker-compose.yml"
-project_nginx_path="${project_docker_dir}/nginx.conf"
+docker_cmd_path="${script_dir}/templates/laravel/cmd.docker.sh"
 
 # variables export pour template
 export PHP_VERSION=""
@@ -117,11 +107,11 @@ laravel_create_sail_project(){
     cd "${project_dir}" || eout "Impossible d'atteindre '${project_dir}', vérifiez les privilèges."
 
     lout "Execution de la requête : ${url_sail_bash_execute}\n\tRépertoire du projet : '${project_dir}'"
-    # if curl -s "${url_sail_bash_execute}" | bash; then
-    #     sout "Le projet ${project_name} a bien été créé avec laravel sail !\n\t\tServices installés :\n\t\t${services_text:-"Aucun"}"
-    # else
-    #     eout "L'execution du script bash de laravel sail renvoie une erreur."
-    # fi
+    if curl -s "${url_sail_bash_execute}" | bash; then
+        sout "Le projet ${project_name} a bien été créé avec laravel sail !\n\t\tServices installés :\n\t\t${services_text:-"Aucun"}"
+    else
+        eout "L'execution du script bash de laravel sail renvoie une erreur."
+    fi
 }
 
 laravel_sail_get_services_in_array() {
@@ -131,12 +121,30 @@ laravel_sail_get_services_in_array() {
     while read -r service_name service_val; do
         is_enabled=$(return_unified_json_bool <<< "$service_val")
 
-        if [ "$is_enabled" = true ]; then
+        if [ "${is_enabled}" = true ]; then
             enabled_services="$enabled_services $service_name"
         fi
     done < <(jq -r '.project_type.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
 
     echo $enabled_services
+}
+
+laravel_create_docker_project(){
+    echo "🚀 Création du projet Laravel ${LARAVEL_VERSION} dans : ${project_dir}"
+    
+    docker run --rm \
+        -v "${project_dir}:/app" \
+        -w /app \
+        -u "$(id -u):$(id -g)" \
+        php:${PHP_VERSION}-cli \
+        bash -c "composer create-project laravel/laravel . \"${LARAVEL_VERSION}.*\" --prefer-dist"
+
+    if [ $? -eq 0 ]; then
+        echo "✅ Projet Laravel créé avec succès."
+    else
+        echo "❌ Erreur lors de la création du projet."
+        return 1
+    fi
 }
 
 # FONCTION create_project() OBLIGATOIRE DANS TOUTES LES LIBS (POLYMORPHISME), LE SCRIPT PRINCIPAL APPELLE CETTE FONCTION
@@ -146,16 +154,14 @@ create_project() {
     lout "Création des fichiers Docker pour le projet Laravel..."
 
     if [ $use_sail = true ]; then
-        lout "Laravel : Utilisation de laravel Sail"
+        lout "Nouveau projet Laravel : Utilisation de laravel Sail"
         laravel_create_sail_project
     elif [ $use_sail = false ]; then
-        lout "Laravel : Utilisation des templates personnalisés"
-        laravel_create_dockerfile
-        laravel_create_docker_compose
-        laravel_create_nginx_config
-        
+        lout "Nouveau projet Laravel : Utilisation des templates personnalisés"
+        [ -f "${docker_cmd_path}" ] || eout "Commande docker non trouvée dans '${docker_cmd_path}'"
+        source "${docker_cmd_path}"
+        copy_files_from_template
         sout "Tous les fichiers Docker ont été créés avec succès"
-        # ICI CREER LE PROJET AVEC DOCKER !!!
     else
         eout "Variable ambigue useSail dans le JSON de configuration. Doit être un booléen"
     fi

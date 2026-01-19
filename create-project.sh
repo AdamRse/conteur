@@ -38,9 +38,4 @@ debug_ "Type de projet '${project_type}' validé"
 
 library="${project_type}.lib.sh"
 source "${script_dir}/lib/${library}"
-if ! create_project; then # Polymorphisme de la bibliothèque importée au dessus
-    eout "La fonction create_project() de la bibliothèque interne '${library}' n'existe pas."
-fi
-
-sout "Projet ${project_type} créé dans '${project_dir}' !"
-lout "Pour lancer le projet : utilsier la commande : 'docker compose up' à la racine du projet."
+create_project # Polymorphisme de la bibliothèque importée au dessus
