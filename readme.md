@@ -311,11 +311,12 @@ Conteur est conçu pour être extensible. Pour ajouter un nouveau type de projet
 
 ## Licence
 
-À définir
+Ce projet est sous licence **GNU GPL v3**. 
+Consultez le fichier [LICENSE](LICENSE) pour plus de détails
 
 ## Auteur
 
-À définir
+Adam Rousselle
 
 ---
 
