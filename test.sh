@@ -3,29 +3,40 @@
 MAIN_SCRIPT_PATH=$(readlink -f "$0")
 MAIN_SCRIPT_DIR=$(dirname "$MAIN_SCRIPT_PATH")
 
-DEBUG_MODE=true
+DEBUG_MODE=false
 
 # PROJECTS_DIR="$PJ"
 # MAIN_PID=$$
 # PROJECT_NAME="test-conteur"
 # PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
 # PROJECT_TYPE="laravel"
+CONFIRM_OPTIONS=true
+PROJECT_PATH=""
+PROJECTS_DIR=""
+PROJECT_NAME=""
+PROJECT_TYPE=""
+PROGRAM_COMMAND_NAME="conteur"
 
 MAIN_PID=$$
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
 source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
 source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
-source "${MAIN_SCRIPT_DIR}/lib/laravel.lib.sh"
 
 # Tests de fonctions
 debug_ "DEBUG MODE ON"
 
-debug_ "RÉSUMÉ DES VARIABLES :
-\tPROJECTS_DIR=$PROJECTS_DIR
-\tPROJECT_NAME=$PROJECT_NAME
-\tPROJECT_PATH=$PROJECT_PATH
-\tPROJECT_TYPE=$PROJECT_TYPE"
+export_json_config
+check_globals
+
+show_summary
+if [ "${CONFIRM_OPTIONS}" = true ]; then
+    if ! ask_yn "Créer le projet avec ces paramètres ?"; then
+        lout "Abandon de l'utilisateur..."
+        exit 0
+    fi
+fi
+sout "Projet créé !"
 
 
 # if declare -p Zala 2>/dev/null | grep -q '^declare -x'; then

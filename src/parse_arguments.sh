@@ -1,17 +1,26 @@
-PARSED_OPTIONS=$(getopt -o lP: --long laravel,path: -n "$0" -- "$@")
+PARSED_OPTIONS=$(getopt -o hlP: --long laravel,help,debug,no-confirm,path: -n "${0}" -- "${@}")
 
-# On vérifie si getopt a rencontré une erreur
 if [ $? -ne 0 ]; then
     eout "L'interpreteur de commande n'a pas fonctionné"
 fi
 
-# Réorganisation des arguments pour le parsing
-eval set -- "$PARSED_OPTIONS"
+eval set -- "${PARSED_OPTIONS}"
 
 while true; do
-    case "$1" in
+    case "${1}" in
+        -h|--help)
+            usage
+            ;;
         -l|--laravel)
             PROJECT_TYPE="laravel"
+            shift
+            ;;
+        --debug)
+            DEBUG_MODE=true
+            shift
+            ;;
+        --no-confirm)
+            CONFIRM_OPTIONS=false
             shift
             ;;
         -P|--path)
@@ -28,19 +37,16 @@ while true; do
     esac
 done
 
-# Gestion de l'argument obligatoire (PROJECT_NAME) qui reste après les options
-if [ -n "$1" ]; then
-    PROJECT_NAME="$1"
+# -- CHECKS --
+PROJECT_NAME="${1}"
+
+if [ -z "${PROJECT_TYPE}" ]; then
+    eout "Le type de projet doit être défini. Pour créer un projet laravel, utiliser l'option -l ou --laravel."
 fi
 
-# --- Validation des paramètres obligatoires ---
-if [ -z "$PROJECT_TYPE" ]; then
-    eout "Erreur : L'option -l ou --laravel est obligatoire."
-fi
-
-if [ -z "$PROJECT_NAME" ]; then
+if [ -z "${PROJECT_NAME}" ]; then
     fout "Erreur : Le nom du projet est obligatoire."
-    eout "Usage: $0 --laravel [options] 'nom_du_projet'"
+    eout "Usage: ${0} --laravel [options] 'nom_du_projet'"
 fi
 
 PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"

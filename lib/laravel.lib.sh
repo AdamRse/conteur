@@ -160,17 +160,21 @@ create_project() {
 
 # Récupération des infos de laravel/latest
 lout "Récupération des infos sur la dernière version de laravel via packagist.org"
-# if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
-#     eout "La récupération des exigeances laravel a échouée. Abandon..."
-# fi
-# PHP_VERSION=$(jq -r '.PHP_VERSION' <<< $laravel_latest_requirements)
-# LARAVEL_VERSION=$(jq -r '.LARAVEL_VERSION' <<< $laravel_latest_requirements)
-PHP_VERSION="9.1"
-LARAVEL_VERSION="1.1.1.1"
+
+if [ "${DEBUG_MODE}" = true ]; then
+    wout "DEBUG MODE ACTIVÉ, PHP_VERSION ET LARAVEL_VERSION ONT DES VALEURS FACTICES DANS laravel.lib.sh"
+    sleep 1
+    PHP_VERSION="8.4"
+    LARAVEL_VERSION="12.1.1.0"
+else
+    if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
+        eout "La récupération des exigeances laravel a échouée. Abandon..."
+    fi
+    PHP_VERSION="$(jq -r '.PHP_VERSION' <<< "${laravel_latest_requirements}")"
+    LARAVEL_VERSION="$(jq -r '.LARAVEL_VERSION' <<< "${laravel_latest_requirements}")"
+fi
 sout "Version trouvées, laravel ${LARAVEL_VERSION} et PHP ${PHP_VERSION}"
 
-lout "Laravel : export des configurations"
-export_json_config
 lout "Laravel : Vérification du contenu des variables"
 laravel_check_requirments
 

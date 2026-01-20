@@ -67,17 +67,6 @@ parse_arguments() {
     PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
 }
 
-# return null
-set_directory() {
-    if [ -n "$PJ" ]; then
-        debug_ "Dev architecture détectée"
-        if [ ! -d "${PJ}" ]; then
-            wout "Le répertoire ${PJ} n'existe pas"
-        fi
-        PROJECTS_DIR="$PJ"
-    fi
-}
-
 # Utilisable avec pipe
 # $1 : dir  : chemin absolu du répertoire
 # return bool
@@ -93,14 +82,58 @@ is_empty_dir(){
     fi
 }
 
-# return bool
-check_PROJECT_TYPE() {
-    [ -z "$1" ] && eout "check_PROJECT_TYPE() : Aucun nom de projet passé."
+# return empty|exit
+check_globals(){
+    debug_ "check_globals() :
+        PROJECTS_DIR=$PROJECTS_DIR
+        PROJECT_NAME=$PROJECT_NAME
+        PROJECT_PATH=$PROJECT_PATH
+        PROJECT_TYPE=$PROJECT_TYPE"
 
-    local $PROJECT_NAME_check = $1
+    [ -z "${PROJECT_NAME}" ] && eout "Aucun nom de projet donné. Spécifiez un nom de projet à l'appel du programme."
+    [ -z "${PROJECT_TYPE}" ] && eout "Aucun type de projet donné. Spécifiez un type de projet à l'appel du programme (pax ex -l ou --laravel)."
+    # PROJECT_NAME
+    local name_pattern='^[a-zA-Z0-9._-]{2,}$'
+    if [[ ! "$PROJECT_NAME" =~ $pattern ]]; then
+        eout "Le nom de projet n'est pas valide. Il doit faire au moins 2 caractères et ne contenir que des lettres, chiffres, '.', '_' ou '-'."
+    fi
 
-    [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_NAME_check}" ] || eout "Type de projet ${PROJECT_NAME_check} inconnu. Aucun template associé pour ce type de projet."
-    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_NAME_check}.lib.sh" ] || eout "Type de projet ${PROJECT_NAME_check} inconnu. Aucune bibliothèque associé pour ce type de projet."
+    # PROJECTS_DIR
+    if [ -z "${PROJECTS_DIR}" ]; then
+        local projects_dir_from_json="$(jq -r ".settings.default_projects_dir" <<< "${JSON_CONFIG}")"
+        if [ -z "${projects_dir_from_json}" ]; then
+            PROJECTS_DIR="${PWD}"
+        elif [ "${projects_dir_from_json}" = "/" ] || [ "${projects_dir_from_json}" = "./" ]; then
+            wout "Le chemin '${projects_dir_from_json}' défini dans je JSON de configuration à : '.settings.default_projects_dir' est invalide."
+            if ask_yn "Créer le projet dans ce répertoire (${PWD}) à la place ?"; then
+                PROJECTS_DIR="${PWD}"
+            else
+                lout "Abandon par l'utilisateur, configurez le répertoire des projets avec l'un de ces choix :\n\t- L'option du programme -P <répertoire>\n\t- La variable '.settings.default_projects_dir' dans 'config/custom.json'\n\t- En executant ce programme dans le répertoire ciblé."
+                exit 1
+            fi
+        else
+            PROJECTS_DIR="$(clean_path_variable "absolute" "${projects_dir_from_json}")"
+        fi
+    else
+        if [[ ! "$PROJECTS_DIR" == /* ]]; then
+            PROJECTS_DIR="$(clean_path_variable "absolute" "${PWD}/${PROJECTS_DIR}")"
+        fi
+    fi # PROJECTS_DIR est maintenant forcément un chemin absolu
+    if [ ! -d "${PROJECTS_DIR}" ]; then
+        wout "Répertoire '${PROJECTS_DIR}' introuvable, ou permission refusée."
+        if ask_yn "ATTENTION : Le répertoire donné dans lequel créer le projet '${PROJECT_NAME}' n'existe pas, il s'agit peut être d'une erreur de frappe. Faut-il malgré tout créer le répertoire de projet '${PROJECTS_DIR}' ?"; then
+            mkdir -p "${PROJECTS_DIR}" || eout "Impossible de créer le répertoire des projets, permission refusée."
+        fi
+    fi
+
+    PROJECT_PATH="$(clean_path_variable "absolute" "${PROJECTS_DIR}/${PROJECT_NAME}")"
+    if [ ! -d "$(dirname "${PROJECT_PATH}")" ]; then
+        eout "Le répertoire parent de ${PROJECT_PATH} n'existe pas, PROJECT_PATH est donc mal construit à cause de clean_path_variable(). L'erreur n'est corrigeable que dans le code du programme."
+    fi
+
+    # PROJECT_TYPE
+    [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
+    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
 }
 
 # return bool
@@ -399,4 +432,65 @@ find_template_from_name() {
         wout "find_template_from_name() : Aucun template trouvé pour '${name}'"
         return 1
     fi
+}
+
+show_summary() {
+    local BOLD='\033[1m'
+    local COLOR_2='\033[0;32m'
+    local COLOR_3='\033[1;33m'
+    local NC='\033[0m'
+    
+    # --- PARAMÈTRES DE TAILLE ---
+    local width=70
+    local label_width=25
+    # ----------------------------
+    
+    print_table_row() {
+        local label=$1
+        local value=$2
+        
+        # Construction de la partie gauche fixe
+        local left_part=$(printf "  %-*s : " "$label_width" "$label")
+        
+        # Calcul du remplissage dynamique pour la bordure droite
+        local used_space=$((${#left_part} + ${#value}))
+        local padding=$((width - used_space))
+        
+        # Sécurité si la valeur est trop longue
+        [[ $padding -lt 0 ]] && padding=0
+
+        printf "${COLOR_2}│${NC}%s${COLOR_2}%s%*s│${NC}\n" "$left_part" "$value" "$padding" ""
+    }
+
+    # Bordure haute
+    echo -e "${COLOR_2}┌$(printf '─%.0s' $(seq 1 $width))┐${NC}"
+    
+    # Titre centré dynamiquement
+    local title="RÉSUMÉ DE LA CONFIGURATION"
+    local title_len=${#title}
+    local title_space=$(( (width - title_len) / 2 ))
+    local title_res=$(( (width - title_len) % 2 )) # Pour gérer les nombres impairs
+    printf "${COLOR_2}│${NC}%*s${BOLD}${COLOR_3}%s${NC}%*s${COLOR_2}│${NC}\n" "$title_space" "" "$title" "$((title_space + title_res))" ""
+    
+    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
+    
+    # Lignes du tableau
+    print_table_row "Nom du projet" "$PROJECT_NAME"
+    print_table_row "Type d'application" "$PROJECT_TYPE"
+    print_table_row "Répertoire racine" "$PROJECTS_DIR"
+
+    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
+    
+    # Chemin complet
+    echo -e "${COLOR_2}│${NC}  ${BOLD}Chemin complet :${NC}$(printf '%*s' $((width - 18)) "")${COLOR_2}│${NC}"
+    
+    local path_display="${PROJECT_PATH}"
+    if [ ${#path_display} -gt $((width - 4)) ]; then
+        path_display="...${path_display: -$((width - 7))}"
+    fi
+    local path_pad=$((width - ${#path_display} - 2))
+    echo -e "${COLOR_2}│${NC}  ${path_display}$(printf '%*s' $path_pad "")${COLOR_2}│${NC}"
+    
+    # Bordure basse
+    echo -e "${COLOR_2}└$(printf '─%.0s' $(seq 1 $width))┘${NC}"
 }
