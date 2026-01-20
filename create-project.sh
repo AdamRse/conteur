@@ -8,10 +8,11 @@ MAIN_SCRIPT_PATH=$(readlink -f "$0")
 MAIN_SCRIPT_DIR=$(dirname "$MAIN_SCRIPT_PATH")
 MAIN_PID=$$
 PROJECT_PATH=""
-PROJECTS_DIR="$PWD"
+PROJECTS_DIR="${PWD}"
 PROJECT_NAME=""
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
+source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
 source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
 
 # -- CHECKS --

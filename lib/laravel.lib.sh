@@ -160,13 +160,13 @@ create_project() {
 
 # Récupération des infos de laravel/latest
 lout "Récupération des infos sur la dernière version de laravel via packagist.org"
-if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
-    eout "La récupération des exigeances laravel a échouée. Abandon..."
-fi
-PHP_VERSION=$(jq -r '.PHP_VERSION' <<< $laravel_latest_requirements)
-LARAVEL_VERSION=$(jq -r '.LARAVEL_VERSION' <<< $laravel_latest_requirements)
-# PHP_VERSION="9.1"
-# LARAVEL_VERSION="1.1.1.1"
+# if ! laravel_latest_requirements=$(laravel_get_json_latest_info); then
+#     eout "La récupération des exigeances laravel a échouée. Abandon..."
+# fi
+# PHP_VERSION=$(jq -r '.PHP_VERSION' <<< $laravel_latest_requirements)
+# LARAVEL_VERSION=$(jq -r '.LARAVEL_VERSION' <<< $laravel_latest_requirements)
+PHP_VERSION="9.1"
+LARAVEL_VERSION="1.1.1.1"
 sout "Version trouvées, laravel ${LARAVEL_VERSION} et PHP ${PHP_VERSION}"
 
 lout "Laravel : export des configurations"
