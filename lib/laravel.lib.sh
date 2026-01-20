@@ -135,8 +135,15 @@ laravel_sail_get_services_in_array() {
 }
 
 # FONCTION create_project() OBLIGATOIRE DANS TOUTES LES LIBS (POLYMORPHISME), LE SCRIPT PRINCIPAL APPELLE CETTE FONCTION
-# SANS RETOURNER DE TRUE/FALSE
+# return empty|exit
 create_project() {
+    debug_ "create_project() Création du projet Laravel :\n\tLaravel : ${LARAVEL_VERSION}\n\tPHP : ${PHP_VERSION}\n\tRépertoire : ${PROJECTS_DIR}\n\tNom du projet : ${PROJECT_NAME}"
+    [ -z "${LARAVEL_VERSION}" ] && eout "create_project() : La variable 'LARAVEL_VERSION' doit être initialisée."
+    [ -z "${PHP_VERSION}" ] && eout "create_project() : La variable 'PHP_VERSION' doit être initialisée."
+    [ -z "${PROJECTS_DIR}" ] && eout "create_project() : La variable 'PROJECTS_DIR' doit être initialisée."
+    [ -z "${PROJECT_NAME}" ] && eout "create_project() : La variable 'PROJECT_NAME' doit être initialisée."
+    [ -z "${PROJECT_PATH}" ] && eout "create_project() : La variable 'PROJECT_PATH' doit être initialisée."
+
     local use_sail=$(use_sail)
     lout "Création des fichiers Docker pour le projet Laravel..."
 
@@ -147,7 +154,21 @@ create_project() {
     elif [ $use_sail = false ]; then
         lout "Nouveau projet Laravel : Utilisation des templates personnalisés"
         [ -f "${docker_cmd_path}" ] || eout "Commande docker non trouvée dans '${docker_cmd_path}'"
-        source "${docker_cmd_path}"
+        # Piège de l'erreur dans le script utilisateur 'docker_cmd_path'
+        local user_script_fail=0
+        set -E
+        set -e
+        trap 'user_script_fail=1' ERR.
+        source "${docker_cmd_path}" || user_script_fail=1
+        trap - ERR
+        set +e
+        set +E
+        if [ "$user_script_fail" -eq 0 ]; then
+            sout "Projet Laravel avec la commande docker créé avec succès."
+        else
+            eout "La commande docker dans le fichier '${docker_cmd_path}' a échoué."
+        fi
+        # --
         copy_files_from_template
         sout "Tous les fichiers Docker ont été créés avec succès"
     else
