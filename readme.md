@@ -1,6 +1,6 @@
 # Conteur
 
-**Conteur** est un script bash qui permet de créer et configurer automatiquement des projets web dans un environnement conteneurisé Docker, avec les technologies les plus récentes, sans avoir besoin d'installer de dépendances localement (hormis Docker).
+**Conteur** est un outil en ligne de commande qui permet de créer et configurer automatiquement des projets web dans un environnement conteneurisé Docker, avec les technologies les plus récentes, sans avoir besoin d'installer de dépendances localement (hormis Docker).
 
 ## Pourquoi Conteur ?
 
@@ -12,23 +12,62 @@
 
 ## Prérequis
 
-- Docker installé sur votre machine
-- Bash (Linux/macOS ou WSL sur Windows)
+- **Système d'exploitation** : Linux (testé sur Debian/Ubuntu)
+- **Docker** installé et fonctionnel
+- **Bash** 4.0 ou supérieur
+
+> ⚠️ **Note** : Conteur n'est actuellement pas compatible avec Windows (même WSL) ou macOS. Seules les distributions Linux sont supportées.
 
 ## Installation
 
+### Installation automatique
+
 ```bash
-# Clonez ou téléchargez le projet conteur
+# Clonez le dépôt
+git clone <url-du-repo> conteur
+cd conteur
+
+# Lancez le script d'installation
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Le script d'installation vous proposera deux options :
+
+1. **Installation globale** (`/opt/conteur`) : Recommandée pour une utilisation système
+2. **Installation locale** (répertoire actuel) : Utile pour le développement ou les tests
+
+Après l'installation, la commande `conteur` sera disponible globalement dans votre terminal.
+
+### Installation manuelle
+
+Si vous préférez ne pas utiliser le script d'installation :
+
+```bash
+# Clonez le dépôt
 git clone <url-du-repo> conteur
 cd conteur
 
 # Rendez le script exécutable
 chmod +x conteur.sh
+
+# Utilisez le script directement
+./conteur.sh [OPTIONS] [NOM_PROJET]
 ```
+
+### Personnalisation du répertoire d'installation
+
+Pour installer Conteur dans un répertoire personnalisé, déplacez simplement le dépôt à l'emplacement souhaité avant de lancer `install.sh` et choisissez l'installation locale.
 
 ## Utilisation de base
 
 ### Syntaxe
+
+```bash
+conteur [OPTIONS] [NOM_PROJET]
+```
+
+Ou si vous n'avez pas utilisé le script d'installation :
 
 ```bash
 ./conteur.sh [OPTIONS] [NOM_PROJET]
@@ -53,23 +92,26 @@ Actuellement, Conteur supporte :
 
 ```bash
 # Créer un projet Laravel nommé "mon_blog"
-./conteur.sh --laravel mon_blog
+conteur --laravel mon_blog
 
 # Créer un projet dans un répertoire spécifique
-./conteur.sh -l -P "/home/user/projets" mon_blog
+conteur -l -P "/home/user/projets" mon_blog
 
 # Créer un projet sans confirmation
-./conteur.sh -l --no-confirm mon_api
+conteur -l --no-confirm mon_api
+
+# Mode debug pour diagnostiquer les problèmes
+conteur --laravel --debug mon_projet
 ```
 
 ## Configuration
 
 ### Fichiers de configuration
 
-Conteur utilise deux fichiers de configuration JSON :
+Conteur utilise deux fichiers de configuration JSON situés dans le répertoire `config/` :
 
 - **`config/default.json`** : Configuration par défaut (ne pas modifier)
-- **`config/custom.json`** : Configuration personnalisée (prioritaire)
+- **`config/custom.json`** : Configuration personnalisée (prioritaire, non versionné)
 
 Les deux fichiers sont fusionnés automatiquement, **`custom.json` étant prioritaire**.
 
@@ -262,9 +304,11 @@ docker run --rm \
 ```
 conteur/
 ├── conteur.sh                 # Script principal
+├── install.sh                 # Script d'installation
+├── global.var.sh              # Variables globales (nom de commande)
 ├── config/                    # Configuration JSON
-│   ├── default.json
-│   ├── custom.json
+│   ├── default.json           # Configuration par défaut
+│   ├── custom.json            # Configuration utilisateur (non versionné)
 │   └── readme.md
 ├── lib/                       # Bibliothèques par type de projet
 │   └── laravel.lib.sh
@@ -277,7 +321,11 @@ conteur/
 │   └── laravel/
 │       ├── cmd.docker.sh
 │       ├── custom/
+│       │   └── readme.md
 │       └── default/
+│           ├── Dockerfile.template
+│           ├── docker-compose.yml.template
+│           └── nginx.conf.template
 └── readme.md
 ```
 
@@ -288,7 +336,7 @@ conteur/
 Pour diagnostiquer un problème, utilisez le mode debug :
 
 ```bash
-./conteur.sh --laravel --debug mon_projet
+conteur --laravel --debug mon_projet
 ```
 
 ### Vérifier les templates utilisés
@@ -297,9 +345,24 @@ Le mode debug affiche quels templates sont chargés et dans quel ordre.
 
 ### Problèmes courants
 
-- **Docker non installé** : Vérifiez que Docker est installé et en cours d'exécution
-- **Permissions** : Assurez-vous que `conteur.sh` est exécutable (`chmod +x conteur.sh`)
+- **Docker non installé** : Vérifiez que Docker est installé et en cours d'exécution avec `docker --version`
+- **Permissions** : Si l'installation échoue, vérifiez que vous avez les droits sudo
+- **Commande non trouvée après installation** : Vérifiez que `/usr/local/bin` est dans votre PATH avec `echo $PATH`
 - **Variables non remplacées** : Vérifiez la syntaxe dans `custom.json` et que les variables existent dans la bibliothèque
+- **Incompatibilité système** : Conteur ne fonctionne que sur Linux
+
+### Désinstallation
+
+Pour désinstaller Conteur :
+
+```bash
+# Si installation globale
+sudo rm -rf /opt/conteur
+sudo rm /usr/local/bin/conteur
+
+# Si installation locale
+# Supprimez simplement le répertoire du projet
+```
 
 ## Contribuer
 
@@ -308,11 +371,14 @@ Conteur est conçu pour être extensible. Pour ajouter un nouveau type de projet
 1. Créez une bibliothèque dans `lib/monframework.lib.sh`
 2. Ajoutez les templates dans `templates/monframework/default/`
 3. Configurez les options dans `config/default.json`
+4. Mettez à jour `src/parse_arguments.sh` pour gérer les nouvelles options
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
 
 ## Licence
 
 Ce projet est sous licence **GNU GPL v3**. 
-Consultez le fichier [LICENSE](LICENSE) pour plus de détails
+Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
 
 ## Auteur
 
@@ -320,4 +386,4 @@ Adam Rousselle
 
 ---
 
-**Note** : Ce projet est en développement actif. D'autres types de projets seront ajoutés prochainement.
+**Note** : Ce projet est en développement. D'autres types de projets et le support d'autres systèmes d'exploitation seront ajoutés prochainement.
