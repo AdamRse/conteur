@@ -1,4 +1,3 @@
-config/*
-!config/default.json
-!config/readme.md
 todo.md
+test.sh
+config/custom.json

@@ -4,7 +4,6 @@ DEBUG_MODE=false
 
 MAIN_SCRIPT_PATH=$(readlink -f "$0")
 MAIN_SCRIPT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
-PROGRAM_COMMAND_NAME="conteur"
 
 MAIN_PID=$$
 CONFIRM_OPTIONS=true
@@ -12,6 +11,7 @@ PROJECT_PATH=""
 PROJECTS_DIR=""
 PROJECT_NAME=""
 PROJECT_TYPE=""
+source "${MAIN_SCRIPT_DIR}/global.var.sh"
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
 source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
