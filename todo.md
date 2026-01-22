@@ -1,6 +1,0 @@
-- laravel.lib.sh create_project() : non fini
-    - Les copies de templates fonctionnent.
-    - Le noms de variables globales ont changé, des bugs peuvent venir de là
-    - Confusions possible entre PROJECT_PATH, et PROJECTS_DIR, les anciens noms n'étaient pas assez clair (project_path, project_dir)
-    - La commande docker ne fonctionne pas encore
-        - Indice : s'inspirer de laravel sail : laravelsail/php84-composer, laravelsail/php84-composer:latest
