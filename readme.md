@@ -133,7 +133,7 @@ Les deux fichiers sont fusionnés automatiquement, **`custom.json` étant priori
 
 ```json
 {
-    "PROJECT_TYPE": {
+    "projects": {
         "laravel": {
             "sail": {
                 "useSail": true,
@@ -159,7 +159,7 @@ Les deux fichiers sont fusionnés automatiquement, **`custom.json` étant priori
 
 ```json
 {
-    "PROJECT_TYPE": {
+    "projects": {
         "laravel": {
             "sail": {
                 "useSail": false
@@ -168,7 +168,7 @@ Les deux fichiers sont fusionnés automatiquement, **`custom.json` étant priori
             "templates": {
                 "Dockerfile": {
                     "selected": true,
-                    "PROJECTS_DIR": "docker",
+                    "project_path": "docker",
                     "variables": {
                         "PHP_LARAVEL_LATEST": "${PHP_VERSION}"
                     }
@@ -178,7 +178,7 @@ Les deux fichiers sont fusionnés automatiquement, **`custom.json` étant priori
                 },
                 "nginx.conf": {
                     "selected": true,
-                    "PROJECTS_DIR": "docker/nginx"
+                    "project_path": "docker/nginx"
                 }
             }
         }
@@ -236,12 +236,12 @@ RUN apt-get update && apt-get install -y \
 
 ```json
 {
-    "PROJECT_TYPE": {
+    "projects": {
         "laravel": {
             "templates": {
                 "Dockerfile": {
                     "selected": true,
-                    "PROJECTS_DIR": "docker",
+                    "project_path": "docker",
                     "variables": {
                         "PHP_LARAVEL_LATEST": "${PHP_VERSION}"
                     }
@@ -277,7 +277,7 @@ Pour chaque template, vous pouvez définir :
 {
     "NomDuTemplate": {
         "selected": true,                    // false = ignore ce template
-        "PROJECTS_DIR": "chemin/destination", // Où écrire le fichier
+        "project_path": "chemin/destination", // Où écrire le fichier
         "variables": {                       // Variables à remplacer
             "MA_VARIABLE": "${PHP_VERSION}"
         }

@@ -187,16 +187,16 @@ check_json_config_integrity(){
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
     debug_ "Vérification du contenu logique"
-    local has_project=$(jq ".PROJECT_TYPE.${PROJECT_TYPE}" <<< "$json_test")
+    local has_project=$(jq "projects.${PROJECT_TYPE}" <<< "$json_test")
     if [ "$has_project" == "null" ]; then
         eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
     fi
 
     debug_ "Vérification de laravel Sail"
-    local is_sail=$(parse_jq_bool ".PROJECT_TYPE.${PROJECT_TYPE}.settings.sail.useSail" <<< "$json_test")
+    local is_sail=$(parse_jq_bool "projects.${PROJECT_TYPE}.settings.sail.useSail" <<< "$json_test")
     if [ "${is_sail}" = false ]; then
         debug_ "Vérification des templates"
-        local selected_count=$(jq "[.PROJECT_TYPE.${PROJECT_TYPE}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
+        local selected_count=$(jq "[projects.${PROJECT_TYPE}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
         if [ "$selected_count" -eq 0 ]; then
             eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${PROJECT_TYPE}. Séléctionner au moins un template si Laravel Sail n'est pas utilisé"
         fi
@@ -268,7 +268,7 @@ copy_files_from_template() {
     check_json_config_integrity "${json_config}"
     debug_ "Projet dans ${PROJECTS_DIR}"
 
-    local project_docker_dir_relative=$(jq -r ".PROJECT_TYPE.${PROJECT_TYPE}.settings.project_docker_files_dir" <<< "$json_config")
+    local project_docker_dir_relative=$(jq -r "projects.${PROJECT_TYPE}.settings.project_docker_files_dir" <<< "$json_config")
     local project_docker_dir="$(clean_path_variable "absolute" "${PROJECTS_DIR}/${project_docker_dir_relative}")"
     debug_ "copy_files_from_template() : Vérification des calculs de variables.
         \$project_docker_dir_relative=${project_docker_dir_relative}
@@ -278,14 +278,14 @@ copy_files_from_template() {
         mkdir -p "${project_docker_dir}" || eout "copy_files_from_template() : droits insufisants pour créer le répertoire de templates '${project_docker_dir}'"
     fi
 
-    jq -r --arg type "${PROJECT_TYPE}" '.PROJECT_TYPE[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
+    jq -r --arg type "${PROJECT_TYPE}" 'projects[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
         debug_ "Boucle de copie, appel de copy_file()"
         copy_file "${name}" "${configuration}" "${project_docker_dir}"
     done
 }
 
 # $1                : name                      : Nom du fichier à copier
-# $2                : config                    : JSON config attaché au template. Par exemple : .PROJECT_TYPE.laravel.templates.<fichier>[]
+# $2                : config                    : JSON config attaché au template. Par exemple : projects.laravel.templates.<fichier>[]
 # $3 (optionnel)    : project_docker_files_dir  : Répertoire dans le projet où ranger les fichiers par défaut. Indiqué dans JSON de config : PROJECT_TYPE.laravel.settings.project_docker_files_dir
 # return message+true|message+false
 copy_file() {
@@ -308,7 +308,7 @@ copy_file() {
     local selected=$(jq -r '.selected' <<< "${config}")
     if [ "${selected}" = true ]; then
         debug_ "Lancement de la copie"
-        local custom_path="$(jq -r ".PROJECTS_DIR" <<< "${config}")"
+        local custom_path="$(jq -r ".project_path" <<< "${config}")"
         local template_path
         if ! template_path="$(find_template_from_name "${name}")"; then
             fout "copy_file() : Template de ${name} non trouvé."

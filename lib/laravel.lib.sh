@@ -60,11 +60,11 @@ laravel_get_json_latest_info() {
 }
 
 use_sail(){
-    echo "$(parse_jq_bool ".PROJECT_TYPE.laravel.settings.sail.useSail" <<< "${JSON_CONFIG}")"
+    echo "$(parse_jq_bool ".projects.laravel.settings.sail.useSail" <<< "${JSON_CONFIG}")"
 }
 
 laravel_create_sail_project(){
-    local devcontainer="$(parse_jq_bool ".PROJECT_TYPE.laravel.settings.sail.devcontainer" <<< "${JSON_CONFIG}")"
+    local devcontainer="$(parse_jq_bool ".projects.laravel.settings.sail.devcontainer" <<< "${JSON_CONFIG}")"
     local services_array="$(laravel_sail_get_services_in_array)"
     local url_sail_bash_execute="https://laravel.build/${PROJECT_NAME}"
     local services_url=""
@@ -105,7 +105,7 @@ laravel_create_sail_project(){
     elif [ $devcontainer = false ]; then
         debug_ "Option devcontainer non ajoutée"
     else
-        wout "Option devcontainer ambigue, JSON de configuration : 'PROJECT_TYPE.laravel.settings.sail.devcontainer' doit être un booléen."
+        wout "Option devcontainer ambigue, JSON de configuration : '.projects.laravel.settings.sail.devcontainer' doit être un booléen."
     fi
 
     cd "${PROJECTS_DIR}" || eout "Impossible d'atteindre '${PROJECTS_DIR}', vérifiez les privilèges."
@@ -129,7 +129,7 @@ laravel_sail_get_services_in_array() {
         if [ "${is_enabled}" = true ]; then
             enabled_services="$enabled_services $service_name"
         fi
-    done < <(jq -r '.PROJECT_TYPE.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
+    done < <(jq -r '.projects.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
 
     echo $enabled_services
 }
