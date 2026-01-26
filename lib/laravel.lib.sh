@@ -163,17 +163,17 @@ create_project() {
         trap - ERR
         set +e
         set +E
+        # --
         if [ "$user_script_fail" -eq 0 ]; then
             sout "Projet Laravel avec la commande docker créé avec succès."
         else
             eout "La commande docker dans le fichier '${docker_cmd_path}' a échoué."
         fi
-        # --
-        copy_files_from_template
-        sout "Tous les fichiers Docker ont été créés avec succès"
     else
         eout "Variable ambigue useSail dans le JSON de configuration. Doit être un booléen"
     fi
+    copy_files_from_template
+    sout "Tous les fichiers Docker ont été créés avec succès"
 }
     
 
