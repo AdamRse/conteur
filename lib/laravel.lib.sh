@@ -63,6 +63,7 @@ use_sail(){
     echo "$(parse_jq_bool ".projects.laravel.settings.sail.useSail" <<< "${JSON_CONFIG}")"
 }
 
+# return message|exit
 laravel_create_sail_project(){
     local devcontainer="$(parse_jq_bool ".projects.laravel.settings.sail.devcontainer" <<< "${JSON_CONFIG}")"
     local services_array="$(laravel_sail_get_services_in_array)"
@@ -119,6 +120,7 @@ laravel_create_sail_project(){
     fi
 }
 
+# return "array"
 laravel_sail_get_services_in_array() {
     local service_name service_val is_enabled
     local enabled_services=""
@@ -132,6 +134,25 @@ laravel_sail_get_services_in_array() {
     done < <(jq -r '.projects.laravel.settings.sail.services | to_entries | .[] | "\(.key) \(.value)"' <<< "$JSON_CONFIG")
 
     echo $enabled_services
+}
+
+# return bool
+laravel_execute_cmd_docker(){
+    local user_script_fail=0
+    [ -f "${docker_cmd_path}" ] || eout "Commande docker non trouvée dans '${docker_cmd_path}'"
+
+    set -E
+    set -e
+    trap 'user_script_fail=1' ERR.
+    source "${docker_cmd_path}" || user_script_fail=1
+    trap - ERR
+    set +e
+    set +E
+    
+    if [ "$user_script_fail" -eq 0 ]; then
+        return 0
+    fi
+    return 1
 }
 
 # FONCTION create_project() OBLIGATOIRE DANS TOUTES LES LIBS (POLYMORPHISME), LE SCRIPT PRINCIPAL APPELLE CETTE FONCTION
@@ -153,18 +174,7 @@ create_project() {
         laravel_create_sail_project
     elif [ $use_sail = false ]; then
         lout "Nouveau projet Laravel : Utilisation des templates personnalisés"
-        [ -f "${docker_cmd_path}" ] || eout "Commande docker non trouvée dans '${docker_cmd_path}'"
-        # Piège de l'erreur dans le script utilisateur 'docker_cmd_path'
-        local user_script_fail=0
-        set -E
-        set -e
-        trap 'user_script_fail=1' ERR.
-        source "${docker_cmd_path}" || user_script_fail=1
-        trap - ERR
-        set +e
-        set +E
-        # --
-        if [ "$user_script_fail" -eq 0 ]; then
+        if laravel_execute_cmd_docker; then
             sout "Projet Laravel avec la commande docker créé avec succès."
         else
             eout "La commande docker dans le fichier '${docker_cmd_path}' a échoué."
