@@ -1,3 +1,5 @@
 todo.md
 test.sh
-config/custom.json
+config/*
+!config/default.json
+readme-IA-update.md
