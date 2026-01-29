@@ -82,6 +82,18 @@ is_empty_dir(){
     fi
 }
 
+# $1 : weak_type    : arg|pipe    : La variable faiblement typée à interpréter
+# return weak_type+true|empty+false
+convert_pseudo_bool(){
+    local weak_type="${1:-$(cat)}"
+    if [ -z "${weak_type}" ] || [ "${weak_type}" = "null" ] || [ "${weak_type}" = "false" ] || [ "${weak_type}" = "FALSE" ] || [ "${weak_type}" = "empty" ] || [ "${weak_type}" = "0" ] || [ "${weak_type}" = "off" ] || [ "${weak_type}" = "no" ]; then
+        echo ""
+        return 1
+    fi
+    echo "${weak_type}"
+    return 0
+}
+
 # return empty|exit
 check_globals(){
     debug_ "check_globals() :
@@ -100,7 +112,7 @@ check_globals(){
 
     # PROJECTS_DIR
     if [ -z "${PROJECTS_DIR}" ]; then
-        local projects_dir_from_json="$(jq -r ".settings.default_projects_dir" <<< "${JSON_CONFIG}")"
+        local projects_dir_from_json="$(convert_pseudo_bool "$(jq -r ".settings.default_projects_dir" <<< "${JSON_CONFIG}")")"
         if [ -z "${projects_dir_from_json}" ]; then
             PROJECTS_DIR="${PWD}"
         elif [ "${projects_dir_from_json}" = "/" ] || [ "${projects_dir_from_json}" = "./" ]; then

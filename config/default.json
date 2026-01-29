@@ -7,7 +7,7 @@
             "settings":{
                 "project_docker_files_dir":".docker/development"
                 ,"sail":{
-                    "useSail":"false"
+                    "useSail":false
                     ,"devcontainer":true
                     ,"services":{
                         "mysql":false
