@@ -14,3 +14,6 @@
 # DEBUG TEMPORAIRE
 mkdir -p "${PROJECT_PATH}"
 echo "<h1>Nouveau Projet ${PROJECT_NAME}</h1><p>Page de test pour le projet ${PROJECT_PATH}, debug temporaire</p>" > "${PROJECT_PATH}/index.html"
+
+mkdir -p "${PROJECT_PATH}/config"
+echo "Fichier de config" > "${PROJECT_PATH}/config/conf.json"
