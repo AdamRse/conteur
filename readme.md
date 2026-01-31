@@ -1,4 +1,4 @@
-# Conteur
+# Conteur Beta version
 
 **Conteur** est un outil en ligne de commande qui permet de créer et configurer automatiquement des projets web dans un environnement conteneurisé Docker, avec les technologies les plus récentes, sans avoir besoin d'installer de dépendances localement (hormis Docker).
 
@@ -17,6 +17,7 @@
 - **Bash** 4.0 ou supérieur
 
 > ⚠️ **Note** : Conteur n'est actuellement pas compatible avec Windows (même WSL) ou macOS. Seules les distributions Linux sont supportées.
+> La version actuelle est en bêta et en cours de développement
 
 ## Installation
 
