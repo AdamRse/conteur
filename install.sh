@@ -36,7 +36,7 @@ sudo chmod +x "${INSTALL_DIR}/conteur.sh"
 lout "Ajout de programme à l'index"
 sudo ln -sf "${INSTALL_DIR}/conteur.sh" "${BIN_LINK}"
 
-echo -e "\t-------------------------------------------------------"
+echo -e "\t----------------------------------------------------------"
 
 hash -r
 if ! command -v "${PROGRAM_COMMAND_NAME}" &> /dev/null; then
