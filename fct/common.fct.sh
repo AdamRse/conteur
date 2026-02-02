@@ -14,59 +14,6 @@ check_packages_requirements() {
     fi
 }
 
-parse_arguments() {
-    # On définit les options courtes (lP:) et longues (laravel,path:)
-    # Le ":" après une lettre signifie qu'un argument est attendu.
-    local PARSED_OPTIONS
-    PARSED_OPTIONS=$(getopt -o lP: --long laravel,path: -n "$0" -- "$@")
-    
-    # On vérifie si getopt a rencontré une erreur
-    if [ $? -ne 0 ]; then
-        eout "L'interpreteur de commande n'a pas fonctionné"
-    fi
-
-    # Réorganisation des arguments pour le parsing
-    eval set -- "$PARSED_OPTIONS"
-
-    while true; do
-        case "$1" in
-            -l|--laravel)
-                PROJECT_TYPE="laravel"
-                shift
-                ;;
-            -P|--path)
-                PROJECTS_DIR="$2"
-                shift 2
-                ;;
-            --)
-                shift
-                break
-                ;;
-            *)
-                echo "Erreur interne de parsing"
-                exit 1
-                ;;
-        esac
-    done
-
-    # Gestion de l'argument obligatoire (PROJECT_NAME) qui reste après les options
-    if [ -n "$1" ]; then
-        PROJECT_NAME="$1"
-    fi
-
-    # --- Validation des paramètres obligatoires ---
-    if [ -z "$PROJECT_TYPE" ]; then
-        eout "Erreur : L'option -l ou --laravel est obligatoire."
-    fi
-
-    if [ -z "$PROJECT_NAME" ]; then
-        fout "Erreur : Le nom du projet est obligatoire."
-        eout "Usage: $0 --laravel [options] 'nom_du_projet'"
-    fi
-
-    PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
-}
-
 # Utilisable avec pipe
 # $1 : dir  : chemin absolu du répertoire
 # return bool
@@ -220,10 +167,14 @@ check_json_config_integrity(){
 # return JSON|exit
 merge_config_json(){
     local default_path="${MAIN_SCRIPT_DIR}/config/default.json"
-    local custom_path="${MAIN_SCRIPT_DIR}/config/custom.json"
+    local custom_path="${MAIN_SCRIPT_DIR}/config.json"
 
     [ -d "${MAIN_SCRIPT_DIR}" ] || eout "merge_config_json() : la variable \$MAIN_SCRIPT_DIR n'est pas initialisée"
     [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
+    
+    if [ ! -f "${custom_path}" ]; then
+        custom_path="${MAIN_SCRIPT_DIR}/config/custom.json"
+    fi
 
     local default_json=$(cat "${default_path}")
 
