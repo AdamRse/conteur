@@ -22,37 +22,37 @@
                     }
                 }
             }
-            ,"templates":{
-                "docker-compose.yml":{
-                    "file_name":""
-                    ,"selected":false
-                    ,"project_path":""
-                    ,"template":""
+            ,"files":[
+                {
+                    "selected":true
+                    ,"template":"docker-compose.yml"
+                    ,"custom_filename":"docker-compose.yaml"
+                    ,"custom_project_dir":"./"
                     ,"variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                     }
                 }
-                ,"Dockerfile":{
-                    "file_name":""
-                    ,"selected":true
-                    ,"project_path":"./"
-                    ,"template":""
-                    ,"variables":{
-                        "PROJECT_NAME":"${PROJECT_NAME}"
-                        ,"PHP_VERSION":"${PHP_VERSION}"
-                    }
-                }
-                ,"nginx.conf":{
-                    "file_name":""
-                    ,"selected":false
-                    ,"project_pathy":""
-                    ,"template":""
+                ,{
+                    "selected":true
+                    ,"template":"Dockerfile"
+                    ,"custom_filename":""
+                    ,"custom_project_dir":""
                     ,"variables":{
                         "PROJECT_NAME":"${PROJECT_NAME}"
                         ,"PHP_VERSION":"${PHP_VERSION}"
                     }
                 }
-            }
+                ,{
+                    "selected":true
+                    ,"template":"nginx.conf"
+                    ,"custom_filename":""
+                    ,"custom_project_dir":""
+                    ,"variables":{
+                        "PROJECT_NAME":"${PROJECT_NAME}"
+                        ,"PHP_VERSION":"${PHP_VERSION}"
+                    }
+                }
+            ]
         }
     }
 }

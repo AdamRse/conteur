@@ -151,16 +151,7 @@ check_json_config_integrity(){
         eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
     fi
 
-    debug_ "Vérification de laravel Sail"
-    local is_sail=$(parse_jq_bool ".projects.${PROJECT_TYPE}.settings.sail.useSail" <<< "$json_test")
-    if [ "${is_sail}" = false ]; then
-        debug_ "Vérification des templates"
-        local selected_count=$(jq "[.projects.${PROJECT_TYPE}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
-        if [ "$selected_count" -eq 0 ]; then
-            eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${PROJECT_TYPE}. Séléctionner au moins un template si Laravel Sail n'est pas utilisé"
-        fi
-    fi
-    debug_ "Fichier de configuration JSON conforme."
+    # Plus de vérifications logique à faire
     return 0
 }
 
