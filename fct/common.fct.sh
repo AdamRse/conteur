@@ -122,9 +122,10 @@ parse_jq_bool() {
 
 # Donne un "true" ou "false" en checkant les multiples syntaxes possibles. A utiliser pour unifier la valeur d'un booléen dans un json
 # Utilisable avec un pipe
+# $1 : boolean   : booléen à tester
 # return "bool"|empty
 return_unified_json_bool(){
-    local boolean="$(cat)"
+    local boolean="${1:-$(cat)}"
     if [ "$boolean" = "true" ] || [ "$boolean" = "1" ] || [ "$boolean" = "\"true\"" ] || [ "$boolean" = "\"1\"" ]; then
         echo "true"
     elif [ "$boolean" = "false" ] || [ "$boolean" = "0" ] || [ "$boolean" = "\"false\"" ] || [ "$boolean" = "\"0\"" ]; then
@@ -232,18 +233,21 @@ copy_files_from_template() {
         mkdir -p "${project_docker_dir}" || eout "copy_files_from_template() : droits insufisants pour créer le répertoire de templates '${project_docker_dir}'"
     fi
 
-    jq -r --arg type "${PROJECT_TYPE}" 'projects[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
-        debug_ "Boucle de copie, appel de copy_file()"
-        copy_file "${name}" "${configuration}" "${project_docker_dir}"
+    debug_ "Liste des fichier à copier"
+    jq -c ".projects.${PROJECT_TYPE}.files[]" <<< "${json_config}" | while read -r file_config; do
+        debug_ "Lecture du fichier :\n\t${json_config}"
+        local is_selected="$(return_unified_json_bool $(jq -r '.selected' <<< "${file_config}"))"
+        if [ "${is_selected}" = true ]; then
+            debug_ "Copie du fichier"
+            copy_file "${file_config}"
+        fi
     done
 }
 
-# $1                : name                      : Nom du fichier à copier
-# $2                : config                    : JSON config attaché au template. Par exemple : projects.laravel.templates.<fichier>[]
-# $3 (optionnel)    : project_docker_files_dir  : Répertoire dans le projet où ranger les fichiers par défaut. Indiqué dans JSON de config : PROJECT_TYPE.laravel.settings.project_docker_files_dir
+# $1    : file_config   : Partie du config.json associée au fichier à copier
 # return message+true|message+false
 copy_file() {
-    local name="${1}"
+    local file="${1}"
     local config="${2}"
     local project_docker_files_dir="${3}"
 

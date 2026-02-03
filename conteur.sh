@@ -34,8 +34,8 @@ if [ "${CONFIRM_OPTIONS}" = true ]; then
         exit 0
     fi
 fi
-# -- MAIN --
 
+# -- MAIN --
 library="${PROJECT_TYPE}.lib.sh"
 source "${MAIN_SCRIPT_DIR}/lib/${library}"
 create_project # Polymorphisme de la bibliothèque importée au dessus
