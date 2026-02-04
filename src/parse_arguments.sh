@@ -45,7 +45,7 @@ if [ -z "${PROJECT_TYPE}" ]; then
 fi
 
 if [ -z "${PROJECT_NAME}" ]; then
-    eout "Le nom du projet est obligatoire.\n\tUsage :\n\t${PROGRAM_COMMAND_NAME} --laravel [options] 'nom_du_projet'"
+    eout "Le nom du projet est obligatoire.\n\tUsage :\n\t${COMMAND_NAME} --laravel [options] 'nom_du_projet'"
 fi
 
 PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"

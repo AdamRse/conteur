@@ -1,1 +1,0 @@
-PROGRAM_COMMAND_NAME="conteur"

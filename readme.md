@@ -306,7 +306,6 @@ docker run --rm \
 conteur/
 ├── conteur.sh                 # Script principal
 ├── install.sh                 # Script d'installation
-├── global.var.sh              # Variables globales (nom de commande)
 ├── config/                    # Configuration JSON
 │   ├── default.json           # Configuration par défaut
 │   ├── custom.json            # Configuration utilisateur (non versionné)
