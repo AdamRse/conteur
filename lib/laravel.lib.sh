@@ -143,7 +143,7 @@ laravel_execute_cmd_docker(){
 
     set -E
     set -e
-    trap 'user_script_fail=1' ERR.
+    trap 'user_script_fail=1' ERR
     source "${docker_cmd_path}" || user_script_fail=1
     trap - ERR
     set +e

@@ -183,6 +183,7 @@ merge_config_json(){
     return 0
 }
 
+# Rend disponible la variable globale JSON_CONFIG
 # return void|exit
 export_json_config(){
     JSON_CONFIG=$(merge_config_json)
