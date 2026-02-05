@@ -255,12 +255,12 @@ copy_file() {
     [ -z "${file_config}" ] && fout "copy_file() : Le JSON de paramètre pour la copie de fichierest manquant en paramètre 1" && return 1
     [ ! -d "${project_dir}" ] && fout "copy_file() : Le paramètre 2 ne contient pas le répertoire absolu du projet, le répertoire donné '${project_dir}' n'existe pas, ou n'est pas accessible." && return 1
     ! is_json_var "${file_config}" && fout "copy_file() : La variable donnée en paramètre 1, n'est pas un JSON" && return 1
-    ! return_unified_json_bool "$(jq '.selected' <<< "${file_config}")" && wout "Annulation de la copie du fichier, le flag '.selected' est à 'false'" && return 0
+    ! return_unified_json_bool "$(jq -r '.selected' <<< "${file_config}")" && wout "Annulation de la copie du fichier, le flag '.selected' est à 'false'" && return 0
 
-    local json_file_var_list="$(jq '.variables // empty' <<< "${file_config}")"
-    local template_name="$(jq '.template // empty' <<< "${file_config}")"
-    local custom_file_dir="$(jq '.custom_project_dir // empty' <<< "${file_config}")"
-    local custom_filename="$(jq '.custom_filename // empty' <<< "${file_config}")"
+    local json_file_var_list="$(jq -r '.variables // empty' <<< "${file_config}")"
+    local template_name="$(jq -r '.template // empty' <<< "${file_config}")"
+    local custom_file_dir="$(jq -r '.custom_project_dir // empty' <<< "${file_config}")"
+    local custom_filename="$(jq -r '.custom_filename // empty' <<< "${file_config}")"
 
     [ -z "${template_name}" ] && fout "copy_file() : Impossible de trouver le nom du template de référence dans les paramètres JSON." && return 1
     local template_path
@@ -326,10 +326,12 @@ export_vars_list(){
 # $2 : project_file_custom_dir (optionnel)  : Le répertoire personnalisé du fichier dans le répertoire de projet  (variable "PROJECTS_DIR" config/default.json)
 # return result+true|false
 get_project_file_path(){
+    debug_ "------------------------------------\n\tDEBUG DE GET PROJECT FILE PATH\n\t------------------------------------"
     local file_name="${1}"
     local project_file_custom_dir="${2}"
     local l_projects_dir="${PROJECTS_DIR}"
-    local project_docker_files_dir="$(jq ".projects.${PROJECT_TYPE}.settings.project_docker_files_dir")"
+    local project_docker_files_dir="$(jq -r ".projects.${PROJECT_TYPE}.settings.project_docker_files_dir")"
+
     [ -z "${file_name}" ] && fout "get_project_file_path() : Aucun nom passé en premier paramètre" && return 1
     [ -z "${l_projects_dir}" ] && fout "get_project_file_path() : La variable globale '\$PROJECTS_DIR' doit être initialisée" && return 1
     [ ! -d "${l_projects_dir}" ] && fout "get_project_file_path() : Le répertoire du projet doit être créé" && return 1
