@@ -122,9 +122,10 @@ parse_jq_bool() {
 
 # Donne un "true" ou "false" en checkant les multiples syntaxes possibles. A utiliser pour unifier la valeur d'un booléen dans un json
 # Utilisable avec un pipe
+# $1 : boolean   : booléen à tester
 # return "bool"|empty
 return_unified_json_bool(){
-    local boolean="$(cat)"
+    local boolean="${1:-$(cat)}"
     if [ "$boolean" = "true" ] || [ "$boolean" = "1" ] || [ "$boolean" = "\"true\"" ] || [ "$boolean" = "\"1\"" ]; then
         echo "true"
     elif [ "$boolean" = "false" ] || [ "$boolean" = "0" ] || [ "$boolean" = "\"false\"" ] || [ "$boolean" = "\"0\"" ]; then
@@ -151,16 +152,7 @@ check_json_config_integrity(){
         eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
     fi
 
-    debug_ "Vérification de laravel Sail"
-    local is_sail=$(parse_jq_bool ".projects.${PROJECT_TYPE}.settings.sail.useSail" <<< "$json_test")
-    if [ "${is_sail}" = false ]; then
-        debug_ "Vérification des templates"
-        local selected_count=$(jq "[.projects.${PROJECT_TYPE}.templates[] | select(.selected | tostring | . == \"true\" or . == \"1\")] | length" <<< "$json_test")
-        if [ "$selected_count" -eq 0 ]; then
-            eout "check_json_config_integrity() : Aucun template n'est sélectionné (selected: true) pour ${PROJECT_TYPE}. Séléctionner au moins un template si Laravel Sail n'est pas utilisé"
-        fi
-    fi
-    debug_ "Fichier de configuration JSON conforme."
+    # Plus de vérifications logique à faire
     return 0
 }
 
@@ -191,6 +183,7 @@ merge_config_json(){
     return 0
 }
 
+# Rend disponible la variable globale JSON_CONFIG
 # return void|exit
 export_json_config(){
     JSON_CONFIG=$(merge_config_json)
@@ -226,84 +219,84 @@ clean_path_variable(){
 copy_files_from_template() {
     local json_config=${1:-$JSON_CONFIG}
     [ -z "${json_config}" ] && eout "copy_files_from_template() : Le JSON de configuration n'a pas été trouvé. Utiliser export_json_config() pour rendre la config globale ou passez là en paramètre."
-    [ -z "${PROJECTS_DIR}" ] && eout "copy_files_from_template() : La variable '\$PROJECTS_DIR' doit être initialisée avant."
-    [ -d "${PROJECTS_DIR}" ] || eout "copy_files_from_template() : Le projet n'a pas été créé, créer le projet avant de faire appel à cette fonction."
+    [ -z "${PROJECT_PATH}" ] && eout "copy_files_from_template() : La variable globale '\$PROJECT_PATH' doit être initialisée avant."
+    [ -d "${PROJECT_PATH}" ] || eout "copy_files_from_template() : Le projet n'a pas été créé, créer le projet avant de faire appel à cette fonction."
     check_json_config_integrity "${json_config}"
-    debug_ "Projet dans ${PROJECTS_DIR}"
+    debug_ "Projet dans ${PROJECT_PATH}"
 
     local project_docker_dir_relative=$(jq -r ".projects.${PROJECT_TYPE}.settings.project_docker_files_dir" <<< "$json_config")
-    local project_docker_dir="$(clean_path_variable "absolute" "${PROJECTS_DIR}/${project_docker_dir_relative}")"
+    local project_docker_dir="$(clean_path_variable "absolute" "${PROJECT_PATH}/${project_docker_dir_relative}")"
     debug_ "copy_files_from_template() : Vérification des calculs de variables.
         \$project_docker_dir_relative=${project_docker_dir_relative}
         \$project_docker_dir=${project_docker_dir}"
 
-    if [ ! -d "${project_docker_dir}" ]; then
-        mkdir -p "${project_docker_dir}" || eout "copy_files_from_template() : droits insufisants pour créer le répertoire de templates '${project_docker_dir}'"
-    fi
-
-    jq -r --arg type "${PROJECT_TYPE}" 'projects[$type].templates | to_entries[] | "\(.key) \(.value | @json)"' <<< "${json_config}" | while read -r name configuration; do
-        debug_ "Boucle de copie, appel de copy_file()"
-        copy_file "${name}" "${configuration}" "${project_docker_dir}"
+    debug_ "Liste des fichier à copier"
+    local copy_errors=0
+    jq -c ".projects.${PROJECT_TYPE}.files[]" <<< "${json_config}" | while read -r file_config; do
+        debug_ "Lecture du fichier :\n\t${file_config}"
+        local is_selected="$(return_unified_json_bool $(jq -r '.selected' <<< "${file_config}"))"
+        if [ "${is_selected}" = true ]; then
+            debug_ "Copie du fichier"
+            ! copy_file "${file_config}" && ((copy_errors++))
+        fi
     done
+
+    (( copy_errors > 0 )) && fout "${copy_errors} fichier(s) non copié(s)" && return 1
+    return 0
 }
 
-# $1                : name                      : Nom du fichier à copier
-# $2                : config                    : JSON config attaché au template. Par exemple : projects.laravel.templates.<fichier>[]
-# $3 (optionnel)    : project_docker_files_dir  : Répertoire dans le projet où ranger les fichiers par défaut. Indiqué dans JSON de config : PROJECT_TYPE.laravel.settings.project_docker_files_dir
+# $1    : file_config           : Partie du config.json associée au fichier à copier
 # return message+true|message+false
 copy_file() {
-    local name="${1}"
-    local config="${2}"
-    local project_docker_files_dir="${3}"
+    local file_config="${1}"
+    debug_ "Paramètres copy_file() : JSON de config : ${file_config}"
 
-    [ -z "${name}" ] && fout "copy_file() : Aucun nom de template passé." && return 1
-    [ -z "${config}" ] && fout "copy_file() : Aucune configuration passée pour la copie du template ${name}." && return 1
-    [ ! -d "${PROJECT_PATH}" ] && fout "copy_file() : Le répertoire de projet n'existe pas encore dans '${PROJECT_PATH}'." && return 1
-    ! is_json_var "${config}" && fout "copy_file() : Le json de configuration n'est pas conforme :\n${config}" && return 1
+    [ -z "${file_config}" ] && fout "copy_file() : Le JSON de paramètre pour la copie de fichierest manquant en paramètre 1" && return 1
+    ! is_json_var "${file_config}" && fout "copy_file() : La variable donnée en paramètre 1, n'est pas un JSON" && return 1
+    ! return_unified_json_bool "$(jq -r '.selected' <<< "${file_config}")" && wout "Annulation de la copie du fichier, le flag '.selected' est à 'false'" && return 0
 
-    
-    debug "copy_file() Résumée des paramètres reçu :
-        \$name=${name}
-        \$config=${config}
-        \$project_docker_files_dir=${project_docker_files_dir}"
+    local json_file_var_list="$(jq -r '.variables // empty' <<< "${file_config}")"
+    local template_name="$(jq -r '.template // empty' <<< "${file_config}")"
+    local custom_file_dir="$(jq -r '.custom_project_dir // empty' <<< "${file_config}")"
+    local custom_filename="$(jq -r '.custom_filename // empty' <<< "${file_config}")"
 
-    # On peut ensuite extraire des données spécifiques de la configuration du template
-    local selected=$(jq -r '.selected' <<< "${config}")
-    if [ "${selected}" = true ]; then
-        debug_ "Lancement de la copie"
-        local custom_path="$(jq -r ".project_path" <<< "${config}")"
-        local template_path
-        if ! template_path="$(find_template_from_name "${name}")"; then
-            fout "copy_file() : Template de ${name} non trouvé."
-            return 1
+    [ -z "${template_name}" ] && fout "copy_file() : Impossible de trouver le nom du template de référence dans les paramètres JSON." && return 1
+    local template_path
+    if ! template_path="$(find_template_from_name "${template_name}")"; then
+        fout "copy_file() : Template de ${template_name} non trouvé."
+        return 1
+    fi
+    debug_ "copy_file() : Liste des variables à exporter :\n\t${json_file_var_list}"
+
+    local file_path
+    if ! file_path="$(get_project_file_path "${file_config}")"; then
+        fout "copy_file() : Impossible de déterminer Le répertoire du fichier."
+    fi
+    [ -f "${file_path}" ] && wout "copy_file() : Le fichier '${file_path}' existe déjà, il ne sera pas copié" && return 0
+    debug_ "copy_file() : Variables calculées :\n\t- \$template_name : ${template_name}\n\t- \$custom_file_dir : ${custom_file_dir}\n\t- \$file_path : ${file_path}\n\t- \$template_path : ${template_path}"
+
+
+    local file_dir="$(dirname ${file_path})"
+    if [ ! -d "${file_dir}" ]; then
+        ! mkdir -p "${file_dir}" && fout "Impossible de créer le répertoire '${file_dir}', vérifiez les permissions" && return 1
+    fi
+
+    export_vars_list "${json_file_var_list}"
+    debug_ "copy_file() Variables exportées :\n\t${EXPORTED_VARS}"
+    if [ ${#EXPORTED_VARS[@]} -eq 0 ]; then
+        if cp "${template_path}" "${file_path}"; then
+            sout "copie sans variables (raw) de ${template_path} -> ${file_path} effectuée"
+            return 0
         fi
-        local variables_list_json="$(jq ".variables" <<< "${config}")"
-        local project_file_path="$(get_project_file_path "${name}" "${project_docker_files_dir}" "${custom_path}")"
-        export_vars_list "${variables_list_json}" # Rend EXPORTED_VARS accessible, l'export ne fonctionne pas dans un sous-shell avec $() pour récupérer les variables exportées
-        debug_ "Résumée du calcul de variables pour la copie :
-            \$custom_path=${custom_path}
-            \$template_path=${template_path}
-            \$project_file_path=${project_file_path}
-            \$EXPORTED_VARS=${EXPORTED_VARS}"
-
-        if [ ${#EXPORTED_VARS[@]} -eq 0 ]; then
-            if cp "${template_path}" "${project_file_path}"; then
-                sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
-                return 0
-            fi
-            fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${project_file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
-            return 1
-        else
-            if envsubst "${EXPORTED_VARS}" < "${template_path}" > "${project_file_path}"; then
-                sout "copie sans variables de ${template_path} -> ${project_file_path} effectuée"
-                return 0
-            fi
-            fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${project_file_path}'\n\t\ta échouée."
-            return 1
-        fi
+        fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
+        return 1
     else
-        lout "Le template ${name} est ignoré (json config : selected:false)"
-        return 0
+        if envsubst "${EXPORTED_VARS}" < "${template_path}" > "${file_path}"; then
+            sout "copie dynamique (avec variables) de ${template_path} -> ${file_path} effectuée"
+            return 0
+        fi
+        fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée."
+        return 1
     fi
 }
 
@@ -336,31 +329,40 @@ export_vars_list(){
     debug_ "Variables exportées : ${EXPORTED_VARS}"
 }
 
-# $1 : file_name                            : Le nom du fichier à copier
-# $2 : project_docker_files_dir             : Répertoire par défaut des fichiers docker dans le projet (variable config/default.json du même nom)
-# $3 : project_file_custom_dir (optionnel)  : Le répertoire personnalisé du fichier dans le répertoire de projet  (variable "PROJECTS_DIR" config/default.json)
+# $1 : file_config                          : Le nom du fichier à copier
 # return result+true|false
 get_project_file_path(){
-    local file_name="${1}"
-    local project_docker_files_dir="${2}"
-    local project_file_custom_dir="${3}"
-    local l_projects_dir="${PROJECTS_DIR}"
-    [ -z "${file_name}" ] && eout "get_project_file_path() : Aucun nom passé en premier paramètre"
-    [ -z "${l_projects_dir}" ] && eout "get_project_file_path() : La variable globale '\$PROJECTS_DIR' doit être initialisée"
-    [ -d "${l_projects_dir}" ] || eout "get_project_file_path() : Le répertoire du projet doit être créé"
+    local file_config="${1}"
+    local project_docker_files_dir_default="$(jq -r ".projects.${PROJECT_TYPE}.settings.project_docker_files_dir // empty" <<< "${JSON_CONFIG}")"
+    local project_file_dir_custom="$(jq -r '.custom_project_dir // empty' <<< "${file_config}")"
+    local custom_filename="$(jq -r '.custom_filename // empty' <<< "${file_config}")"
+    local template_name="$(jq -r '.template // empty' <<< "${file_config}")"
+    local file_name="${custom_filename:-${template_name%.template}}"
 
-    local file_location=""
-    if [ -n "${project_file_custom_dir}" ]; then
-        if [ "${project_file_custom_dir}" = "." ] || [ "${project_file_custom_dir}" = "./" ] || [ "${project_file_custom_dir}" = "/" ]; then
-            file_location="${l_projects_dir}/${file_name}"
+    [ -z "${PROJECT_PATH}" ] && fout "get_project_file_path() : La variable globale '\$PROJECT_PATH' doit être initialisée" && return 1
+    [ -z "${PROJECT_TYPE}" ] && fout "get_project_file_path() : La variable globale '\$PROJECT_TYPE' doit être initialisée" && return 1
+    [ -z "${file_name}" ] && fout "get_project_file_path() : Impossible de déterminer le nom du fichier à copier" && return 1
+    [ -z "${file_config}" ] && fout "get_project_file_path() : Aucun json de configuration passé en paramètre 1" && return 1
+    [ -z "${template_name}" ] && fout "get_project_file_path() : Le JSON de configuration du fichier passé en paramètre 1 n'a pas de champ 'template'." && return 1
+    ! is_json_var "${file_config}" && fout "get_project_file_path() : Le paramètre 1 passé n'est pas un JSON valide" && return 1
+
+    local project_file_dir=""
+    if [ -n "${project_file_dir_custom}" ]; then
+        if [ "${project_file_dir_custom}" = "." ] || [ "${project_file_dir_custom}" = "./" ] || [ "${project_file_dir_custom}" = "/" ]; then
+            project_file_dir="${PROJECT_PATH}"
         else
-            file_location="${l_projects_dir}/${project_file_custom_dir}/${file_name}"
+            project_file_dir="${PROJECT_PATH}/${project_file_dir_custom}"
         fi
+    elif [ -n "${project_docker_files_dir_default}" ]; then
+        project_file_dir="${PROJECT_PATH}/${project_docker_files_dir_default}"
     else
-        file_location="${l_projects_dir}/${project_docker_files_dir}/${file_name}"
+        project_file_dir="${PROJECT_PATH}"
     fi
 
-    echo "$(clean_path_variable "absolute" "${file_location}")"
+    [ -z "${project_file_dir}" ] && fout "get_project_file_path() : Impossible de déterminer le répertoire pour le fichier '${file_name}', vérifier le JSON de configuration" && return 1
+
+    echo "$(clean_path_variable "absolute" "${project_file_dir}/${file_name}")"
+    return 0
 }
 
 # $1 : name     : Le nom du fichier pour lequel trouver le template associé

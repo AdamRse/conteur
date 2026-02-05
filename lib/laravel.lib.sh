@@ -143,7 +143,7 @@ laravel_execute_cmd_docker(){
 
     set -E
     set -e
-    trap 'user_script_fail=1' ERR.
+    trap 'user_script_fail=1' ERR
     source "${docker_cmd_path}" || user_script_fail=1
     trap - ERR
     set +e
@@ -194,7 +194,6 @@ lout "Récupération des infos sur la dernière version de laravel via packagist
 
 if [ "${DEBUG_MODE}" = true ]; then
     wout "DEBUG MODE ACTIVÉ, PHP_VERSION ET LARAVEL_VERSION ONT DES VALEURS FACTICES DANS laravel.lib.sh"
-    sleep 1
     PHP_VERSION="8.4"
     LARAVEL_VERSION="12.1.1.0"
 else

@@ -4,7 +4,7 @@ Les templates personalisables sont créés ici par l'utilisateur. Ils ont le mê
 - Le template doit terminer par l'extension `.template` (conseillé, prioritaire) et avoir de nom de fichier exact qui servira au fichier de destination.  
 - Les variables du template seront remplacées par les variables du JSON de configuration `config/default.json` et `config/custom.json`.
 ## Configuration JSON
-Il  y a 2 fichiers de configuration : `config/default.json` et `config/custom.json`  
+Il  y a 2 fichiers de configuration : `config/default.json` et `config/custom.json` (ou `./config.json`) 
 Il est conseillé de ne pas modifier `default.json`, mais uniquement `custom.json`. Les 2 JSON seront fusionnés : **les données de `custom.json` sont prioritaires.**
 ## Exemple
 Je créé un template `templates/laravel/custom/MonTemplate.template`, les variables de ce template seront rempalcées par les variables du fichier de configuration `config/default.json` et `config/custom.json`.

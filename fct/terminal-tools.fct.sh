@@ -116,7 +116,7 @@ show_spinner() {
 }
 
 usage(){
-    echo "Usage: ${PROGRAM_COMMAND_NAME} [OPTIONS] [NOM_PROJET]"
+    echo "Usage: ${COMMAND_NAME} [OPTIONS] [NOM_PROJET]"
     echo "Le type de projet doit obligatoirement être spécifié en option."
     echo ""
     echo "Types de projet disponibles :"
@@ -127,7 +127,7 @@ usage(){
     echo "  -l, --laravel         (Obligatoire) Définir le type de projet, comme Laravel"
     echo "  -P, --path [DIR]      Spécifier le répertoire dans lequel créer le projet"
     echo "                            Exemple :"
-    echo "                            ${PROGRAM_COMMAND_NAME} -lP \"/home/user/projects\" \"my_project\""
+    echo "                            ${COMMAND_NAME} -lP \"/home/user/projects\" \"my_project\""
     echo "                            Créera les fichiers du projet dans \"/home/user/projects/my_project\""
     echo "      --debug           Activer le mode debug, plus verbeux"
     echo "      --no-confirm      Ignore la demmande de confirmation des paramètres en début de script"
