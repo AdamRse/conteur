@@ -230,14 +230,18 @@ copy_files_from_template() {
         \$project_docker_dir=${project_docker_dir}"
 
     debug_ "Liste des fichier à copier"
+    local copy_errors=0
     jq -c ".projects.${PROJECT_TYPE}.files[]" <<< "${json_config}" | while read -r file_config; do
         debug_ "Lecture du fichier :\n\t${file_config}"
         local is_selected="$(return_unified_json_bool $(jq -r '.selected' <<< "${file_config}"))"
         if [ "${is_selected}" = true ]; then
             debug_ "Copie du fichier"
-            copy_file "${file_config}"
+            ! copy_file "${file_config}" && ((copy_errors++))
         fi
     done
+
+    (( copy_errors > 0 )) && fout "${copy_errors} fichier(s) non copié(s)" && return 1
+    return 0
 }
 
 # $1    : file_config           : Partie du config.json associée au fichier à copier
