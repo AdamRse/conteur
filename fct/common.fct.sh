@@ -272,7 +272,9 @@ copy_file() {
     if ! file_path="$(get_project_file_path "${file_config}")"; then
         fout "copy_file() : Impossible de déterminer Le répertoire du fichier."
     fi
+    [ -f "${file_path}" ] && wout "copy_file() : Le fichier '${file_path}' existe déjà, il ne sera pas copié" && return 0
     debug_ "copy_file() : Variables calculées :\n\t- \$template_name : ${template_name}\n\t- \$custom_file_dir : ${custom_file_dir}\n\t- \$file_path : ${file_path}\n\t- \$template_path : ${template_path}"
+
 
     local file_dir="$(dirname ${file_path})"
     if [ ! -d "${file_dir}" ]; then
