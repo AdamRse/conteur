@@ -49,6 +49,16 @@ check_globals(){
         PROJECT_PATH=$PROJECT_PATH
         PROJECT_TYPE=$PROJECT_TYPE"
 
+    # CONFIG_DIR
+    if [ ! -d "${CONFIG_DIR}" ]; then
+        if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
+            mkdir -p "${CONFIG_DIR}" || eout "Impossible de créer le répertoire '${CONFIG_DIR}', vérifier les droits d'accès. Vous pouvez modifier le répertoire avec CONFIG_DIR dans ${MAIN_SCRIPT_DIR}/.env"
+        else
+            
+        fi
+    fi
+    eout "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible."
+
     [ -z "${PROJECT_NAME}" ] && eout "Aucun nom de projet donné. Spécifiez un nom de projet à l'appel du programme."
     [ -z "${PROJECT_TYPE}" ] && eout "Aucun type de projet donné. Spécifiez un type de projet à l'appel du programme (pax ex -l ou --laravel)."
     # PROJECT_NAME
@@ -93,6 +103,10 @@ check_globals(){
     # PROJECT_TYPE
     [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
     [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
+
+    # TEMPLATES
+    DEFAULT_TEMPLATE_DIR="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default"
+    CUSTOM_TEMPLATE_DIR="${CONFIG_DIR}/templates/${PROJECT_TYPE}/custom"
 }
 
 # return bool

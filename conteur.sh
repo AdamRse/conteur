@@ -8,14 +8,18 @@ COMMAND_NAME="$(basename "$0")"
 
 MAIN_PID=$$
 CONFIRM_OPTIONS=true
+CONFIG_DIR="${HOME}/.config/conteur"
 PROJECT_PATH=""
 PROJECTS_DIR=""
 PROJECT_NAME=""
 PROJECT_TYPE=""
+DEFAULT_TEMPLATE_DIR=""
+CUSTOM_TEMPLATE_DIR=""
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
 source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
 source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
+[ -f "${MAIN_SCRIPT_DIR}/.env" ] && source "${MAIN_SCRIPT_DIR}/.env"
 
 # -- CHECKS --
 lout "Vérification des dépendances"
