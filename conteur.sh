@@ -15,11 +15,17 @@ PROJECT_NAME=""
 PROJECT_TYPE=""
 DEFAULT_TEMPLATE_DIR=""
 CUSTOM_TEMPLATE_DIR=""
+JSON_CONFIG=""
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
 source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
 source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
-[ -f "${MAIN_SCRIPT_DIR}/.env" ] && source "${MAIN_SCRIPT_DIR}/.env"
+if [ -f "${MAIN_SCRIPT_DIR}/.env" ]; then
+    source "${MAIN_SCRIPT_DIR}/.env"
+else
+    wout "Aucun fichier d'environement trouvé dans '${MAIN_SCRIPT_DIR}', certaines valeurs seront appliquées par défaut"
+    sleep 1
+fi
 
 # -- CHECKS --
 lout "Vérification des dépendances"
@@ -29,7 +35,7 @@ lout "Export des configurations"
 export_json_config
 
 lout "Vérification des variables globales"
-check_globals
+set_check_globals
 
 show_summary
 if [ "${CONFIRM_OPTIONS}" = true ]; then

@@ -41,26 +41,40 @@ convert_pseudo_bool(){
     return 0
 }
 
-# return empty|exit
-check_globals(){
-    debug_ "check_globals() :
-        PROJECTS_DIR=$PROJECTS_DIR
-        PROJECT_NAME=$PROJECT_NAME
-        PROJECT_PATH=$PROJECT_PATH
-        PROJECT_TYPE=$PROJECT_TYPE"
+# return message+true|exit
+create_config_dir(){
+    [ -z "${JSON_CONFIG}" ] && eout "create_config_dir() : Le JSON de configuration n'est pas initialisé."
+    [ -z "${CONFIG_DIR}" ] && eout "La variable globale \$CONFIG_DIR n'est pas initialisée."
+    check_json_config_integrity "${JSON_CONFIG}"
 
-    # CONFIG_DIR
-    if [ ! -d "${CONFIG_DIR}" ]; then
-        if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
-            mkdir -p "${CONFIG_DIR}" || eout "Impossible de créer le répertoire '${CONFIG_DIR}', vérifier les droits d'accès. Vous pouvez modifier le répertoire avec CONFIG_DIR dans ${MAIN_SCRIPT_DIR}/.env"
-        else
-            
-        fi
-    fi
-    eout "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible."
+    lout "Création du répertoire de configuration"
+
+    local project_list=$(jq -r '.projects | keys? | .[]?' <<< "${JSON_CONFIG}")
+    [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
+
+    for project_type in $project_list; do
+        local dir_template="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}/templates")"
+        debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
+        ! mkdir -p "${dir_template}" && fout "Impossible de créer le répertoire de config '${dir_template}', vérifier les permissions" && return 1
+    done
+
+    return 0
+}
+
+# return empty|exit
+set_check_globals(){
+    debug_ "check_globals() :
+        PROJECTS_DIR=${PROJECTS_DIR}
+        PROJECT_NAME=${PROJECT_NAME}
+        PROJECT_PATH=${PROJECT_PATH}
+        PROJECT_TYPE=${PROJECT_TYPE}
+        CONFIG_DIR=${CONFIG_DIR}"
 
     [ -z "${PROJECT_NAME}" ] && eout "Aucun nom de projet donné. Spécifiez un nom de projet à l'appel du programme."
     [ -z "${PROJECT_TYPE}" ] && eout "Aucun type de projet donné. Spécifiez un type de projet à l'appel du programme (pax ex -l ou --laravel)."
+    [ -z "${CONFIG_DIR}" ] && eout "La variable globale CONFIG_DIR doit être initialisée"
+    [ -z "${JSON_CONFIG}" ] && eout "La variable globale JSON_CONFIG doit être initialisée"
+
     # PROJECT_NAME
     local name_pattern='^[a-zA-Z0-9._-]{2,}$'
     if [[ ! "$PROJECT_NAME" =~ $pattern ]]; then
@@ -77,7 +91,7 @@ check_globals(){
             if ask_yn "Créer le projet dans ce répertoire (${PWD}) à la place ?"; then
                 PROJECTS_DIR="${PWD}"
             else
-                lout "Abandon par l'utilisateur, configurez le répertoire des projets avec l'un de ces choix :\n\t- L'option du programme -P <répertoire>\n\t- La variable '.settings.default_projects_dir' dans 'config/custom.json'\n\t- En executant ce programme dans le répertoire ciblé."
+                lout "Abandon par l'utilisateur, configurez le répertoire des projets avec l'un de ces choix :\n\t- L'option du programme -P <répertoire>\n\t- La variable '.settings.default_projects_dir' dans '${CONFIG_DIR}/config.json'\n\t- En executant ce programme dans le répertoire ciblé."
                 exit 1
             fi
         else
@@ -104,9 +118,28 @@ check_globals(){
     [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
     [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
 
+    # CONFIG_DIR
+    if [ ! -d "${CONFIG_DIR}" ]; then
+        if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
+            create_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
+        else
+            wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${MAIN_SCRIPT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
+            wout "Sans répertoire de configuration, ${COMMAND_NAME} ne fonctionnera qu'avec les templates et valeurs par défaut."
+        fi
+    fi
+
     # TEMPLATES
     DEFAULT_TEMPLATE_DIR="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default"
-    CUSTOM_TEMPLATE_DIR="${CONFIG_DIR}/templates/${PROJECT_TYPE}/custom"
+    [ ! -d "${DEFAULT_TEMPLATE_DIR}" ] && eout "Le répertoire des templates par défaut n'a pas été trouvé dans '${DEFAULT_TEMPLATE_DIR}'. Vérifier les permissions."
+
+    CUSTOM_TEMPLATE_DIR="$(clean_path_variable "absolute" "${CONFIG_DIR}/${PROJECT_TYPE}/templates")"
+    if [ ! -d "${CUSTOM_TEMPLATE_DIR}" ]; then
+        ! ask_yn "Le répertoire de configuration des templates ${PROJECT_TYPE} n'a pas été trouvé dans '${CUSTOM_TEMPLATE_DIR}'. Faut-il continuer avec les templates par défaut uniquement ?" && {
+            lout "Abandon de l'utilisateur"
+            exit 0
+        }
+        CUSTOM_TEMPLATE_DIR=""
+    fi
 }
 
 # return bool
@@ -173,14 +206,10 @@ check_json_config_integrity(){
 # return JSON|exit
 merge_config_json(){
     local default_path="${MAIN_SCRIPT_DIR}/config/default.json"
-    local custom_path="${MAIN_SCRIPT_DIR}/config.json"
+    local custom_path="${CONFIG_DIR}/config.json"
 
     [ -d "${MAIN_SCRIPT_DIR}" ] || eout "merge_config_json() : la variable \$MAIN_SCRIPT_DIR n'est pas initialisée"
     [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
-    
-    if [ ! -f "${custom_path}" ]; then
-        custom_path="${MAIN_SCRIPT_DIR}/config/custom.json"
-    fi
 
     local default_json=$(cat "${default_path}")
 
@@ -383,8 +412,8 @@ get_project_file_path(){
 # return result+true|wout+false
 find_template_from_name() {
     local name="${1}"
-    local default_templates_dir="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default"
-    local custom_templates_dir="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/custom"
+    local default_templates_dir="${DEFAULT_TEMPLATE_DIR}"
+    local custom_templates_dir="${CUSTOM_TEMPLATE_DIR}"
     [ -z "${name}" ] && eout "find_template_from_name() : Aucun nom passé en premier paramètre"
     [ -z "${MAIN_SCRIPT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$MAIN_SCRIPT_DIR' doit être initialisé"
     [ -z "${PROJECT_TYPE}" ] && eout "find_template_from_name() : La variable globale '\$PROJECT_TYPE' doit être initialisé"
@@ -454,9 +483,9 @@ show_summary() {
     echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
     
     # Lignes du tableau
-    print_table_row "Nom du projet" "$PROJECT_NAME"
-    print_table_row "Type d'application" "$PROJECT_TYPE"
-    print_table_row "Répertoire racine" "$PROJECTS_DIR"
+    print_table_row "Nom du projet" "${PROJECT_NAME}"
+    print_table_row "Type d'application" "$PROJ{ECT_TYPE"
+    print_table_row "Répertoire racine" "${PROJECTS_DIR}"
 
     echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
     

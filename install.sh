@@ -5,9 +5,22 @@ MAIN_SCRIPT_PATH=$(readlink -f "$0")
 MAIN_SCRIPT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
 BIN_DIR="/usr/local/bin"
 INSTALL_DIR="/opt/${COMMAND_NAME}"
+CONFIG_DIR="${HOME}/.config/conteur"
 COMMAND_NAME="conteur"
+JSON_CONFIG=""
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
+source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
+
+if [ -f "${MAIN_SCRIPT_DIR}/.env" ]; then
+    source "${MAIN_SCRIPT_DIR}/.env"
+else
+    wout "Aucun fichier d'environement trouvé dans '${MAIN_SCRIPT_DIR}', certaines valeurs seront appliquées par défaut"
+    sleep 1
+fi
+
+lout "Export de la configuration"
+export_json_config
 
 lout "-- Installation de ${COMMAND_NAME} --"
 lout "Vous avez la possibilité de choisir entre l'installation dans ce répertoire (aucune copie de fichiers ne sera faite), ou plus globallement (${INSTALL_DIR})"
@@ -40,6 +53,13 @@ echo -e "\t----------------------------------------------------------"
 hash -r
 if ! command -v "${COMMAND_NAME}" &> /dev/null; then
     eout "L'installation a échouée, la commande ne peut pas être executée. Vérifier que ${BIN_DIR} est bien dans le PATH"
+fi
+lout "création du répertoire de configuration dans '${CONFIG_DIR}'"
+if create_config_dir; then
+    echo -e "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
+else
+    wout "Impossible de créer le répertoire de configuration dans '${CONFIG_DIR}'. Vérifier les droits d'accès, ou sélectionnez un autre répertoire avec CONFIG_DIR dans ${MAIN_SCRIPT_DIR}/.env, et relancez l'installation."
+    wout "Attention, aucune personnalisation n'est possible tant que le répertoire de configuration n'est pas créé."
 fi
 sout "Installation réussie !"
 lout "Commande utilisable : ${COMMAND_NAME}"

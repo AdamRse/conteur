@@ -1,5 +1,5 @@
 # -- GLOBALS AVAILABLES --
-# Variables globales utilisables dans le json de configuration config/custom.json et config/default.json
+# Variables globales utilisables dans le json de configuration
 # ${LARAVEL_VERSION} : Dernière version stable de Laravel
 # ${PHP_VERSION} : Version de PHP associée à la dernière version stable de laravel
 
@@ -76,7 +76,7 @@ laravel_create_sail_project(){
         \$url_sail_bash_execute=$url_sail_bash_execute"
 
     if [ -z "${services_array}" ]; then
-        if ! ask_yn "Attention ! Aucun service n'a été sélectionné pour le projet laravel, mais Laravel Sail fournit des services par défaut si aucun n'est sélectionné. Ajouter un moin 1 service dans 'config/custom.json' pour ne pas avoir les services par défaut de Laravel Sail. Continuer avec les service par défaut de Laravel Sail ?"; then
+        if ! ask_yn "Attention ! Aucun service n'a été sélectionné pour le projet laravel, mais Laravel Sail fournit des services par défaut si aucun n'est sélectionné. Ajouter un moin 1 service dans '${CONFIG_DIR}/config.json' pour ne pas avoir les services par défaut de Laravel Sail. Continuer avec les service par défaut de Laravel Sail ?"; then
             lout "Arrêt demmandé par l'utilisateur."
             exit 0
         fi
