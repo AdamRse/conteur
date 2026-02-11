@@ -57,6 +57,9 @@ create_config_dir(){
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
         ! mkdir -p "${dir_template}" && fout "Impossible de créer le répertoire de config '${dir_template}', vérifier les permissions" && return 1
     done
+    {
+        echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
+    } || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
 
     return 0
 }

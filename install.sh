@@ -20,7 +20,7 @@ else
 fi
 
 lout "Export de la configuration"
-export_json_config
+export_json_config # exporte la variable JSON_CONFIG qui contient le json de configuration
 
 lout "-- Installation de ${COMMAND_NAME} --"
 lout "Vous avez la possibilité de choisir entre l'installation dans ce répertoire (aucune copie de fichiers ne sera faite), ou plus globallement (${INSTALL_DIR})"
