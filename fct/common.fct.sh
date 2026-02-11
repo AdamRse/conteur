@@ -10,7 +10,10 @@ check_packages_requirements() {
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
     if ! command -v envsubst >/dev/null 2>&1; then
-        eout "envsubst n'est pas disponible. Installez-le avec : sudo apt install gettext-base"
+        eout "La commande 'envsubst' n'est pas disponible. Installez-la avec : sudo apt install gettext-base"
+    fi
+    if ! command -v diff >/dev/null 2>&1; then
+        eout "La commande 'diff' n'est pas disponible. Installez-la avec sudo apt install diffutils"
     fi
 }
 
@@ -53,9 +56,19 @@ create_config_dir(){
     [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
 
     for project_type in $project_list; do
-        local dir_template="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}/templates")"
+        local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
+        local template_dir="${lib_dir}/templates"
+        local docker_example_path=""
+        local docker_example_template_all="${MAIN_SCRIPT_DIR}/config/cmd.docker.all.example"
+        local docker_example_template_specific="${MAIN_SCRIPT_DIR}/config/cmd.docker.${project_type}.example"
+        [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
+        [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
+
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
-        ! mkdir -p "${dir_template}" && fout "Impossible de créer le répertoire de config '${dir_template}', vérifier les permissions" && return 1
+        ! mkdir -p "${template_dir}" && fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions" && return 1
+        if [ -f "${docker_example_path}" ]; then
+            cp "${docker_example_path}" "${lib_dir}/cmd.docker.sh" || wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${lib_dir}' a échoué"
+        fi
     done
     {
         echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
@@ -118,8 +131,8 @@ set_check_globals(){
     fi
 
     # PROJECT_TYPE
-    [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
-    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
+    [ -d "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/templates" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
+    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
 
     # CONFIG_DIR
     if [ ! -d "${CONFIG_DIR}" ]; then
@@ -132,7 +145,7 @@ set_check_globals(){
     fi
 
     # TEMPLATES
-    DEFAULT_TEMPLATE_DIR="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default"
+    DEFAULT_TEMPLATE_DIR="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/templates"
     [ ! -d "${DEFAULT_TEMPLATE_DIR}" ] && eout "Le répertoire des templates par défaut n'a pas été trouvé dans '${DEFAULT_TEMPLATE_DIR}'. Vérifier les permissions."
 
     CUSTOM_TEMPLATE_DIR="$(clean_path_variable "absolute" "${CONFIG_DIR}/${PROJECT_TYPE}/templates")"
@@ -142,6 +155,20 @@ set_check_globals(){
             exit 0
         }
         CUSTOM_TEMPLATE_DIR=""
+    fi
+
+    # DOCKER COMMAND
+    DOCKER_CMD_PATH="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
+    local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
+    local example_docker_cmd="${MAIN_SCRIPT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
+    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${MAIN_SCRIPT_DIR}/config/cmd.docker.all.example"
+
+    if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
+        debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
+        if [ ! -f "${example_docker_cmd}" ] || ! diff -q -b -B "${example_docker_cmd}" "${custom_docker_cmd}" > /dev/null; then
+            DOCKER_CMD_PATH="${custom_docker_cmd}"
+            lout "Script personnalisé de création de projet chargé depuis les fichiers de configuration"
+        fi
     fi
 }
 
@@ -276,13 +303,13 @@ copy_files_from_template() {
         \$project_docker_dir_relative=${project_docker_dir_relative}
         \$project_docker_dir=${project_docker_dir}"
 
-    debug_ "Liste des fichier à copier"
+    debug_ "copy_files_from_template() : Liste des fichier à copier"
     local copy_errors=0
     jq -c ".projects.${PROJECT_TYPE}.files[]" <<< "${json_config}" | while read -r file_config; do
-        debug_ "Lecture du fichier :\n\t${file_config}"
+        debug_ "copy_files_from_template() : Lecture du fichier :\n\t${file_config}"
         local is_selected="$(return_unified_json_bool $(jq -r '.selected' <<< "${file_config}"))"
         if [ "${is_selected}" = true ]; then
-            debug_ "Copie du fichier"
+            debug_ "copy_files_from_template() : Copie du fichier"
             ! copy_file "${file_config}" && ((copy_errors++))
         fi
     done
@@ -328,20 +355,21 @@ copy_file() {
     fi
 
     export_vars_list "${json_file_var_list}"
-    debug_ "copy_file() Variables exportées :\n\t${EXPORTED_VARS}"
+    debug_ "copy_file() : Variables exportées :\n\t${EXPORTED_VARS}"
+    lout "Copie de $(basename ${file_path})"
     if [ ${#EXPORTED_VARS[@]} -eq 0 ]; then
         if cp "${template_path}" "${file_path}"; then
-            sout "copie sans variables (raw) de ${template_path} -> ${file_path} effectuée"
+            debug_ "copie sans variables (raw) de ${template_path} -> ${file_path} effectuée"
             return 0
         fi
-        fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
+        fout "La copie sans variables de\n\t'${template_path}'\n\tvers\n\t'${file_path}'\n\ta échouée. Vérifier les droits d'accès."
         return 1
     else
         if envsubst "${EXPORTED_VARS}" < "${template_path}" > "${file_path}"; then
-            sout "copie dynamique (avec variables) de ${template_path} -> ${file_path} effectuée"
+            debug_ "copie dynamique (avec variables) de ${template_path} -> ${file_path} effectuée"
             return 0
         fi
-        fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée."
+        fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t'${template_path}'\n\tvers\n\t'${file_path}'\n\ta échouée."
         return 1
     fi
 }

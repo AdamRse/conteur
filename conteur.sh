@@ -16,6 +16,7 @@ PROJECT_TYPE=""
 DEFAULT_TEMPLATE_DIR=""
 CUSTOM_TEMPLATE_DIR=""
 JSON_CONFIG=""
+DOCKER_CMD_PATH=""
 
 source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
 source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
@@ -46,6 +47,9 @@ if [ "${CONFIRM_OPTIONS}" = true ]; then
 fi
 
 # -- MAIN --
-library="${PROJECT_TYPE}.lib.sh"
-source "${MAIN_SCRIPT_DIR}/lib/${library}"
+library_path="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh"
+
+lout "Chargement de la bibliothèque '${PROJECT_TYPE}'"
+[ ! -f "${library_path}" ] && eout "Bibliothèque introuvable ou incomplète : main.lib.sh manquant"
+source "${library_path}"
 create_project # Polymorphisme de la bibliothèque importée au dessus
