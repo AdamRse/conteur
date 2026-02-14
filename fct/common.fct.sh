@@ -473,6 +473,15 @@ find_template_from_name() {
     fi
 }
 
+update_conteur(){
+    local update_script_path="${MAIN_SCRIPT_DIR}/install/update.sh"
+    [ -z "${MAIN_SCRIPT_DIR}" ] && eout "update_conteur() : La variable globale MAIN_SCRIPT_DIR doit être initialiser avant l'apel de la fonction."
+    [ ! -f "${update_script_path}" ] && eout "update_conteur() : Le script de mise à jour est introuvable."
+    
+    source "${update_script_path}"
+    exit 0
+}
+
 show_summary() {
     local BOLD='\033[1m'
     local COLOR_2='\033[0;32m'

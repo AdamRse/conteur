@@ -1,4 +1,4 @@
-PARSED_OPTIONS=$(getopt -o hlP: --long laravel,help,debug,no-confirm,path: -n "${0}" -- "${@}")
+PARSED_OPTIONS=$(getopt -o hlUP: --long laravel,updatehelp,debug,no-confirm,path: -n "${0}" -- "${@}")
 
 if [ $? -ne 0 ]; then
     eout "L'interpreteur de commande n'a pas fonctionné"
@@ -21,6 +21,11 @@ while true; do
             ;;
         --no-confirm)
             CONFIRM_OPTIONS=false
+            shift
+            ;;
+        -U|--update)
+            update_conteur
+            exit 0
             shift
             ;;
         -P|--path)
