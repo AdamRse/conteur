@@ -1,9 +1,10 @@
 #!/bin/bash
 
+VERSION="1.0"
 DEBUG_MODE=false
 
 MAIN_SCRIPT_PATH="$(readlink -f "$0")"
-MAIN_SCRIPT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
+ROOT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
 COMMAND_NAME="$(basename "$0")"
 
 MAIN_PID=$$
@@ -18,13 +19,13 @@ CUSTOM_TEMPLATE_DIR=""
 JSON_CONFIG=""
 DOCKER_CMD_PATH=""
 
-source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
-source "${MAIN_SCRIPT_DIR}/src/parse_arguments.sh"
-source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
-if [ -f "${MAIN_SCRIPT_DIR}/.env" ]; then
-    source "${MAIN_SCRIPT_DIR}/.env"
+source "${ROOT_DIR}/fct/terminal-tools.fct.sh"
+source "${ROOT_DIR}/src/parse_arguments.sh"
+source "${ROOT_DIR}/fct/common.fct.sh"
+if [ -f "${ROOT_DIR}/.env" ]; then
+    source "${ROOT_DIR}/.env"
 else
-    wout "Aucun fichier d'environement trouvé dans '${MAIN_SCRIPT_DIR}', certaines valeurs seront appliquées par défaut"
+    wout "Aucun fichier d'environement trouvé dans '${ROOT_DIR}', certaines valeurs seront appliquées par défaut"
     sleep 1
 fi
 
@@ -47,7 +48,7 @@ if [ "${CONFIRM_OPTIONS}" = true ]; then
 fi
 
 # -- MAIN --
-library_path="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh"
+library_path="${ROOT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh"
 
 lout "Chargement de la bibliothèque '${PROJECT_TYPE}'"
 [ ! -f "${library_path}" ] && eout "Bibliothèque introuvable ou incomplète : main.lib.sh manquant"

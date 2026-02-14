@@ -17,7 +17,7 @@ export PROJECT_NAME
 # Prépare les variables et vérifie les fichiers de configuration
 # return null
 laravel_check_requirments() {
-    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "La variable 'MAIN_SCRIPT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -d "${ROOT_DIR}" ] || eout "La variable 'ROOT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PROJECT_PATH}" ] || eout "La variable 'PROJECT_PATH' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PROJECT_NAME}" ] || eout "La variable 'PROJECT_NAME' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PHP_VERSION}" ] || eout "La variable 'PHP_VERSION' doit être initialisée."

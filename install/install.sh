@@ -1,25 +1,25 @@
 #!/bin/bash
 
-# -- VARIABLES D'ENV
+# -- VARIABLES GLOBALES
 COMMAND_NAME="conteur"
 
 INSTALL_SCRIPT_PATH="$(readlink -f "$0")"
-MAIN_SCRIPT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
-INSTALL_DIR="/usr/local/lib/${COMMAND_NAME}"
+ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
+INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
 BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
 # -- CONDITIONS
-if [[ -f "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh" ]] && [[ -f "${MAIN_SCRIPT_DIR}/fct/common.fct.sh" ]]; then
-    source "${MAIN_SCRIPT_DIR}/fct/terminal-tools.fct.sh"
-    source "${MAIN_SCRIPT_DIR}/fct/common.fct.sh"
+if [[ -f "${ROOT_DIR}/fct/terminal-tools.fct.sh" ]] && [[ -f "${ROOT_DIR}/fct/common.fct.sh" ]]; then
+    source "${ROOT_DIR}/fct/terminal-tools.fct.sh"
+    source "${ROOT_DIR}/fct/common.fct.sh"
 else
     echo "Erreur critique : Outils de terminal introuvables."
     exit 1
 fi
 
 if command -v "${COMMAND_NAME}" >/dev/null 2>&1; then
-    [ ! -f "${MAIN_SCRIPT_DIR}/install/update.sh" ] && eout "${COMMAND_NAME} est déjà installé, impossible de trouver le script de mise à jour"
-    source "${MAIN_SCRIPT_DIR}/install/update.sh"
+    [ ! -f "${ROOT_DIR}/install/update.sh" ] && eout "${COMMAND_NAME} est déjà installé, impossible de trouver le script de mise à jour"
+    source "${ROOT_DIR}/install/update.sh"
     exit 0
 fi
 
@@ -36,7 +36,7 @@ if [[ ! -d "${INSTALL_DIR}" ]]; then
 fi
 
 lout "Synchronisation des fichiers..."
-rsync -r "${MAIN_SCRIPT_DIR}/." "${INSTALL_DIR}/"
+rsync -r --exclude='.git' "${ROOT_DIR}/." "${INSTALL_DIR}/"
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."

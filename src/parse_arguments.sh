@@ -23,10 +23,13 @@ while true; do
             CONFIRM_OPTIONS=false
             shift
             ;;
+        -v|--version)
+            show_version
+            exit 0
+            ;;
         -U|--update)
             update_conteur
             exit 0
-            shift
             ;;
         -P|--path)
             PROJECTS_DIR="$2"

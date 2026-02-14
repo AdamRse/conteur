@@ -59,8 +59,8 @@ create_config_dir(){
         local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local template_dir="${lib_dir}/templates"
         local docker_example_path=""
-        local docker_example_template_all="${MAIN_SCRIPT_DIR}/config/cmd.docker.all.example"
-        local docker_example_template_specific="${MAIN_SCRIPT_DIR}/config/cmd.docker.${project_type}.example"
+        local docker_example_template_all="${ROOT_DIR}/config/cmd.docker.all.example"
+        local docker_example_template_specific="${ROOT_DIR}/config/cmd.docker.${project_type}.example"
         [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
         [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
 
@@ -131,21 +131,21 @@ set_check_globals(){
     fi
 
     # PROJECT_TYPE
-    [ -d "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/templates" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
-    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
+    [ -d "${ROOT_DIR}/lib/${PROJECT_TYPE}/templates" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
+    [ -f "${ROOT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
 
     # CONFIG_DIR
     if [ ! -d "${CONFIG_DIR}" ]; then
         if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
             create_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
         else
-            wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${MAIN_SCRIPT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
+            wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${ROOT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
             wout "Sans répertoire de configuration, ${COMMAND_NAME} ne fonctionnera qu'avec les templates et valeurs par défaut."
         fi
     fi
 
     # TEMPLATES
-    DEFAULT_TEMPLATE_DIR="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/templates"
+    DEFAULT_TEMPLATE_DIR="${ROOT_DIR}/lib/${PROJECT_TYPE}/templates"
     [ ! -d "${DEFAULT_TEMPLATE_DIR}" ] && eout "Le répertoire des templates par défaut n'a pas été trouvé dans '${DEFAULT_TEMPLATE_DIR}'. Vérifier les permissions."
 
     CUSTOM_TEMPLATE_DIR="$(clean_path_variable "absolute" "${CONFIG_DIR}/${PROJECT_TYPE}/templates")"
@@ -158,10 +158,10 @@ set_check_globals(){
     fi
 
     # DOCKER COMMAND
-    DOCKER_CMD_PATH="${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
+    DOCKER_CMD_PATH="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
     local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
-    local example_docker_cmd="${MAIN_SCRIPT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
-    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${MAIN_SCRIPT_DIR}/config/cmd.docker.all.example"
+    local example_docker_cmd="${ROOT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
+    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/cmd.docker.all.example"
 
     if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
         debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
@@ -235,10 +235,10 @@ check_json_config_integrity(){
 
 # return JSON|exit
 merge_config_json(){
-    local default_path="${MAIN_SCRIPT_DIR}/config/default.json"
+    local default_path="${ROOT_DIR}/config/default.json"
     local custom_path="${CONFIG_DIR}/config.json"
 
-    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "merge_config_json() : la variable \$MAIN_SCRIPT_DIR n'est pas initialisée"
+    [ -d "${ROOT_DIR}" ] || eout "merge_config_json() : la variable \$ROOT_DIR n'est pas initialisée"
     [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
 
     local default_json=$(cat "${default_path}")
@@ -446,7 +446,7 @@ find_template_from_name() {
     local default_templates_dir="${DEFAULT_TEMPLATE_DIR}"
     local custom_templates_dir="${CUSTOM_TEMPLATE_DIR}"
     [ -z "${name}" ] && eout "find_template_from_name() : Aucun nom passé en premier paramètre"
-    [ -z "${MAIN_SCRIPT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$MAIN_SCRIPT_DIR' doit être initialisé"
+    [ -z "${ROOT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$ROOT_DIR' doit être initialisé"
     [ -z "${PROJECT_TYPE}" ] && eout "find_template_from_name() : La variable globale '\$PROJECT_TYPE' doit être initialisé"
     [ -d "${default_templates_dir}" ] || eout "find_template_from_name() : Le répertoire de templates par défaut est introuvable dans : '${default_templates_dir}'"
     
@@ -474,14 +474,19 @@ find_template_from_name() {
 }
 
 update_conteur(){
-    local update_script_path="${MAIN_SCRIPT_DIR}/install/update.sh"
-    [ -z "${MAIN_SCRIPT_DIR}" ] && eout "update_conteur() : La variable globale MAIN_SCRIPT_DIR doit être initialiser avant l'apel de la fonction."
+    local update_script_path="${ROOT_DIR}/install/update.sh"
+    [ -z "${ROOT_DIR}" ] && eout "update_conteur() : La variable globale ROOT_DIR doit être initialiser avant l'apel de la fonction."
     [ ! -f "${update_script_path}" ] && eout "update_conteur() : Le script de mise à jour est introuvable."
     
     source "${update_script_path}"
     exit 0
 }
+show_version() {
+    [ -z "${COMMAND_NAME}" ] && eout "show_version() : La variable gloale COMMAND_NAME n'est pas initialisée"
+    [ -z "${VERSION}" ] && eout "show_version() : La variable gloale VERSION n'est pas initialisée"
 
+    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}-------------------------------------------"
+}
 show_summary() {
     local BOLD='\033[1m'
     local COLOR_2='\033[0;32m'
