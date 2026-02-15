@@ -1,13 +1,13 @@
 #!/bin/bash
 
 VERSION="1.0"
-DEBUG_MODE=false
 
 MAIN_SCRIPT_PATH="$(readlink -f "$0")"
 ROOT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
 COMMAND_NAME="$(basename "$0")"
 
 MAIN_PID=$$
+DEBUG_MODE=false
 CONFIRM_OPTIONS=true
 CONFIG_DIR="${HOME}/.config/conteur"
 PROJECT_PATH=""

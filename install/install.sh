@@ -9,6 +9,8 @@ INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
 BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
 # -- CONDITIONS
+[[ $EUID -ne 0 ]] && eout "Ce script doit être exécuté en tant que root (utilisez sudo)."
+
 if [[ -f "${ROOT_DIR}/fct/terminal-tools.fct.sh" ]] && [[ -f "${ROOT_DIR}/fct/common.fct.sh" ]]; then
     source "${ROOT_DIR}/fct/terminal-tools.fct.sh"
     source "${ROOT_DIR}/fct/common.fct.sh"
@@ -27,8 +29,6 @@ check_packages_requirements
 
 # -- INSTALLATION
 lout "Début de l'installation de '${COMMAND_NAME}'..."
-
-[[ $EUID -ne 0 ]] && eout "Ce script doit être exécuté en tant que root (utilisez sudo)."
 
 if [[ ! -d "${INSTALL_DIR}" ]]; then
     lout "Création du répertoire d'installation : ${INSTALL_DIR}"
