@@ -1,12 +1,10 @@
 #!/bin/bash
-
-VERSION="1.0"
-
 MAIN_SCRIPT_PATH="$(readlink -f "$0")"
 ROOT_DIR="$(dirname "$MAIN_SCRIPT_PATH")"
-COMMAND_NAME="$(basename "$0")"
 
+COMMAND_NAME=""
 MAIN_PID=$$
+VERSION=""
 DEBUG_MODE=false
 CONFIRM_OPTIONS=true
 CONFIG_DIR="${HOME}/.config/conteur"
@@ -18,10 +16,11 @@ DEFAULT_TEMPLATE_DIR=""
 CUSTOM_TEMPLATE_DIR=""
 JSON_CONFIG=""
 DOCKER_CMD_PATH=""
+source "${ROOT_DIR}/src/vars.sh" || exit 1
 
-source "${ROOT_DIR}/fct/terminal-tools.fct.sh"
-source "${ROOT_DIR}/src/parse_arguments.sh"
-source "${ROOT_DIR}/fct/common.fct.sh"
+source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
+source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
+source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 if [ -f "${ROOT_DIR}/.env" ]; then
     source "${ROOT_DIR}/.env"
 else

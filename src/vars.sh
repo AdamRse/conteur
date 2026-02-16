@@ -1,0 +1,2 @@
+VERSION="1.0"
+COMMAND_NAME="conteur"

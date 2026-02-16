@@ -90,6 +90,9 @@ set_check_globals(){
     [ -z "${PROJECT_TYPE}" ] && eout "Aucun type de projet donné. Spécifiez un type de projet à l'appel du programme (pax ex -l ou --laravel)."
     [ -z "${CONFIG_DIR}" ] && eout "La variable globale CONFIG_DIR doit être initialisée"
     [ -z "${JSON_CONFIG}" ] && eout "La variable globale JSON_CONFIG doit être initialisée"
+    [ -z "${COMMAND_NAME}" ] && eout "La variable globale COMMAND_NAME doit être initialisée dans ./src/vars.sh"
+
+    [[ "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
 
     # PROJECT_NAME
     local name_pattern='^[a-zA-Z0-9._-]{2,}$'

@@ -1,27 +1,26 @@
 #!/bin/bash
 
 # -- VARIABLES GLOBALES
-COMMAND_NAME="conteur"
+COMMAND_NAME=""
+VERSION=""
+source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 INSTALL_SCRIPT_PATH="$(readlink -f "$0")"
 ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
+
 INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
 BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
-# -- CONDITIONS
-[[ $EUID -ne 0 ]] && eout "Ce script doit être exécuté en tant que root (utilisez sudo)."
+source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
+source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
-if [[ -f "${ROOT_DIR}/fct/terminal-tools.fct.sh" ]] && [[ -f "${ROOT_DIR}/fct/common.fct.sh" ]]; then
-    source "${ROOT_DIR}/fct/terminal-tools.fct.sh"
-    source "${ROOT_DIR}/fct/common.fct.sh"
-else
-    echo "Erreur critique : Outils de terminal introuvables."
-    exit 1
-fi
+# -- CONDITIONS
+[[ $EUID -ne 0 ]] && echo "Ce script doit être exécuté en tant que root (utilisez sudo)."
+[[ "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
 
 if command -v "${COMMAND_NAME}" >/dev/null 2>&1; then
     [ ! -f "${ROOT_DIR}/install/update.sh" ] && eout "${COMMAND_NAME} est déjà installé, impossible de trouver le script de mise à jour"
-    source "${ROOT_DIR}/install/update.sh"
+    ${COMMAND_NAME} -U
     exit 0
 fi
 
@@ -30,13 +29,21 @@ check_packages_requirements
 # -- INSTALLATION
 lout "Début de l'installation de '${COMMAND_NAME}'..."
 
-if [[ ! -d "${INSTALL_DIR}" ]]; then
-    lout "Création du répertoire d'installation : ${INSTALL_DIR}"
-    mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
+if [[ -d "${INSTALL_DIR}" ]]; then
+    [[ ! "${INSTALL_DIR}" =~ ${COMMAND_NAME}/?$ ]] && eout "Attention, par sécurité le programme a été arrêté pour ne pas supprimer un mauvais répertoire. Le répertoire d'installation '${INSTALL_DIR}' devrait terminer par ${COMMAND_NAME}" && exit 1
+    ! ask_yn "Le répertoire d'installation '${INSTALL_DIR}' existe déjà. Faut-il l'écraser pour poursuivre l'installation ?" && {
+        lout "Abandon de l'installation par l'utilisateur."
+        exit 0
+    }
+
+    [[ -f "${INSTALL_DIR}/.env" ]] && env_tmp_path="/tmp/${COMMAND_NAME}.env_$(cat /proc/sys/kernel/random/uuid)" && cp "${INSTALL_DIR}/.env" "${env_tmp_path}"
+    rm -rf "${INSTALL_DIR}"
 fi
+mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
+[[ -f "${env_tmp_path}" ]] && cp "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
 lout "Synchronisation des fichiers..."
-rsync -r --exclude='.git' "${ROOT_DIR}/." "${INSTALL_DIR}/"
+rsync -r --exclude={'.git', '.gitignore'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
@@ -57,5 +64,5 @@ if command -v "${COMMAND_NAME}" >/dev/null 2>&1; then
     lout "Vous pouvez maintenant utiliser la commande : ${COMMAND_NAME}"
     sout "Installation terminée !"
 else
-    wout "Le lien symbolique semble ne pas répondre immédiatement. Vérifiez votre PATH."
+    wout "Le lien symbolique semble ne pas répondre immédiatement. Vérifiez que votre PATH contient '${BIN_LINK}'."
 fi
