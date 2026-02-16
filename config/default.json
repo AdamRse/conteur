@@ -24,7 +24,7 @@
             }
             ,"files":[
                 {
-                    "selected":false
+                    "selected":true
                     ,"template":"docker-compose.yml"
                     ,"custom_filename":"docker-compose.yaml"
                     ,"custom_project_dir":"./"
@@ -33,7 +33,7 @@
                     }
                 }
                 ,{
-                    "selected":false
+                    "selected":true
                     ,"template":"Dockerfile"
                     ,"custom_filename":""
                     ,"custom_project_dir":""
