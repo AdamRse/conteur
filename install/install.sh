@@ -6,6 +6,7 @@ ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
 
 COMMAND_NAME=""
 VERSION=""
+CONFIG_DIR=""
 
 source "${ROOT_DIR}/src/vars.sh" || exit 1
 INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
@@ -26,8 +27,17 @@ fi
 
 check_packages_requirements
 
+USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+[ ! -d "${USER_HOME}" ] && USER_HOME="/home/$SUDO_USER"
+[ ! -d "${USER_HOME}" ] && USER_HOME="$HOME"
+[ ! -d "${USER_HOME}" ] && eout "Impossible de déterminer le répertoire HOME de l'utilisateur pour initialiser les fichiers de configuration."
+CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
+
 # -- INSTALLATION
 lout "Début de l'installation de '${COMMAND_NAME}'..."
+
+lout "Export du json de configuration"
+export_json_config
 
 if [[ -d "${INSTALL_DIR}" ]]; then
     [[ ! "${INSTALL_DIR}" =~ ${COMMAND_NAME}/?$ ]] && eout "Attention, par sécurité le programme a été arrêté pour ne pas supprimer un mauvais répertoire. Le répertoire d'installation '${INSTALL_DIR}' devrait terminer par ${COMMAND_NAME}" && exit 1
@@ -40,7 +50,7 @@ if [[ -d "${INSTALL_DIR}" ]]; then
     rm -rf "${INSTALL_DIR}"
 fi
 mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
-[[ -f "${env_tmp_path}" ]] && cp "${env_tmp_path}" "${INSTALL_DIR}/.env"
+[[ -f "${env_tmp_path}" ]] && mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
 lout "Synchronisation des fichiers..."
 rsync -r --exclude={'.git', '.gitignore', 'install/install.sh'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
@@ -57,11 +67,19 @@ if [[ -L "${BIN_LINK}" ]]; then
 fi
 ln -s "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${BIN_LINK}" || fout "Échec de création du lien symbolique."
 
+
 # -- SUCCESS
 
 if command -v "${COMMAND_NAME}" >/dev/null 2>&1; then
     lout "Vous pouvez maintenant utiliser la commande : ${COMMAND_NAME}"
-    sout "Installation terminée !"
 else
     wout "Le lien symbolique semble ne pas répondre immédiatement. Vérifiez que votre PATH contient '${BIN_LINK}'."
 fi
+
+if ask_yn "Créer les fichiers de configuration de l'utilisateur dans '${CONFIG_DIR}' ?"; then
+    lout "Création des fichiers de configuration dans '${CONFIG_DIR}'"
+    create_config_dir
+else
+    wout "Les fichiers de configuration ne sont pas installés."
+fi
+sout "Installation terminée !"
