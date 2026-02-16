@@ -92,11 +92,11 @@ set_check_globals(){
     [ -z "${JSON_CONFIG}" ] && eout "La variable globale JSON_CONFIG doit être initialisée"
     [ -z "${COMMAND_NAME}" ] && eout "La variable globale COMMAND_NAME doit être initialisée dans ./src/vars.sh"
 
-    [[ "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
+    [[ ! "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
 
     # PROJECT_NAME
     local name_pattern='^[a-zA-Z0-9._-]{2,}$'
-    if [[ ! "$PROJECT_NAME" =~ $pattern ]]; then
+    if [[ ! "${PROJECT_NAME}" =~ $pattern ]]; then
         eout "Le nom de projet n'est pas valide. Il doit faire au moins 2 caractères et ne contenir que des lettres, chiffres, '.', '_' ou '-'."
     fi
 
@@ -117,7 +117,7 @@ set_check_globals(){
             PROJECTS_DIR="$(clean_path_variable "absolute" "${projects_dir_from_json}")"
         fi
     else
-        if [[ ! "$PROJECTS_DIR" == /* ]]; then
+        if [[ ! "${PROJECTS_DIR}" == /* ]]; then
             PROJECTS_DIR="$(clean_path_variable "absolute" "${PWD}/${PROJECTS_DIR}")"
         fi
     fi # PROJECTS_DIR est maintenant forcément un chemin absolu
@@ -533,7 +533,7 @@ show_summary() {
     
     # Lignes du tableau
     print_table_row "Nom du projet" "${PROJECT_NAME}"
-    print_table_row "Type d'application" "$PROJ{ECT_TYPE"
+    print_table_row "Type d'application" "${PROJECT_TYPE}"
     print_table_row "Répertoire racine" "${PROJECTS_DIR}"
 
     echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
