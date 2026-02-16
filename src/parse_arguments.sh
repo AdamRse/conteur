@@ -1,4 +1,4 @@
-PARSED_OPTIONS=$(getopt -o hlP: --long laravel,help,debug,no-confirm,path: -n "${0}" -- "${@}")
+PARSED_OPTIONS=$(getopt -o hlUP: --long laravel,updatehelp,debug,no-confirm,path: -n "${0}" -- "${@}")
 
 if [ $? -ne 0 ]; then
     eout "L'interpreteur de commande n'a pas fonctionné"
@@ -22,6 +22,14 @@ while true; do
         --no-confirm)
             CONFIRM_OPTIONS=false
             shift
+            ;;
+        -v|--version)
+            show_version
+            exit 0
+            ;;
+        -U|--update)
+            update_conteur
+            exit 0
             ;;
         -P|--path)
             PROJECTS_DIR="$2"
@@ -48,4 +56,4 @@ if [ -z "${PROJECT_NAME}" ]; then
     eout "Le nom du projet est obligatoire.\n\tUsage :\n\t${COMMAND_NAME} --laravel [options] 'nom_du_projet'"
 fi
 
-PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
+PROJECT_PATH="${PROJECTS_DIR}/${PROJECT_NAME}"

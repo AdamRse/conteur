@@ -1,124 +1,106 @@
 # Conteur
 
-Un outil en ligne de commande écrit en Bash pour générer des projets web dockerisés à partir de templates, conçu pour démarrer rapidement sans installer de dépendances (hormis Docker).
+**Version 1.0** | Licence GPL 3.0 | Par Adam Rousselle
 
-## 📋 Description
+Conteur est un outil en ligne de commande pour créer des projets web dockerisés avec les dernières technologies disponibles. Sa particularité : générer ses propres fichiers dans le projet à partir de templates dynamiques personnalisables.
 
-**Conteur** est orienté pour la création de nouveaux projets dockerisés dans la phase de développement. L'objectif initial est de ne pas avoir à installer de dépendances pour commencer un projet web (à part Docker), et d'avoir automatiquement les dernières technologies disponibles.
+## État du projet
 
-Pour l'instant, le projet ne supporte que Laravel, mais Conteur est conçu pour ajouter d'autres types de projets facilement, suivant l'avancement du développement.
+✅ Supporté : Laravel  
+🚧 En développement : Autres frameworks (à venir)
 
-## ✨ Fonctionnalités
+## Installation
 
-- 🚀 Création rapide de projets Laravel dockerisés
-- 📦 Aucune dépendance à installer (sauf Docker)
-- 🔧 Système de templates personnalisables
-- ⚙️ Configuration flexible via fichiers JSON
-- 🎯 Support optionnel de Laravel Sail
-- 🔄 Architecture extensible pour d'autres frameworks
+### Prérequis
+- Linux (Ubuntu 24 ou similaire)
+- Accès root
 
-## 🚀 Installation
+### Procédure
 
-### Installation globale (recommandée)
-
+1. Téléchargez l'archive depuis [les releases GitHub](https://github.com/votre-repo/conteur/releases)
+2. Extrayez l'archive
+3. Exécutez le script d'installation en tant que root :
 ```bash
-git clone <url-du-repo> /chemin/vers/conteur
-cd /chemin/vers/conteur
-./install.sh
-# Répondre OUI à "Installer conteur de manière globale ?"
+sudo ./install/install.sh
 ```
 
-Conteur sera installé dans `/opt/conteur` et sera accessible globalement via la commande `conteur`.
+Le programme s'installera dans `/usr/local/share/conteur` avec un lien symbolique dans `/usr/local/bin/`.
 
-### Installation locale
+> **Note** : La fonctionnalité d'auto-update sera disponible en version 1.1
 
-```bash
-git clone <url-du-repo> /chemin/vers/conteur
-cd /chemin/vers/conteur
-./install.sh
-# Répondre NON à "Installer conteur de manière globale ?"
-```
+## Utilisation
 
-### Utilisation sans installation
-
-```bash
-git clone <url-du-repo> /chemin/vers/conteur
-cd /chemin/vers/conteur
-./conteur.sh [OPTIONS] [NOM_PROJET]
-```
-
-## 📖 Usage
-
+### Syntaxe de base
 ```bash
 conteur [OPTIONS] [NOM_PROJET]
 ```
 
-Le type de projet doit obligatoirement être spécifié en option.
-
-### Types de projet disponibles
-
-- **Laravel** : `-l`, `--laravel`
-
-### Options
+### Options disponibles
 
 | Option | Description |
 |--------|-------------|
-| `-h`, `--help` | Afficher l'aide |
-| `-l`, `--laravel` | (Obligatoire) Définir le type de projet comme Laravel |
-| `-P`, `--path [DIR]` | Spécifier le répertoire dans lequel créer le projet |
-| `--debug` | Activer le mode debug, plus verbeux |
-| `--no-confirm` | Ignorer la demande de confirmation des paramètres en début de script |
+| `-h, --help` | Afficher l'aide |
+| `-l, --laravel` | **[Obligatoire]** Créer un projet Laravel |
+| `-P, --path [DIR]` | Spécifier le répertoire de destination du projet |
+| `-U, --update` | Effectuer une mise à jour |
+| `-V, --version` | Afficher la version |
+| `--debug` | Activer le mode debug (plus verbeux) |
+| `--no-confirm` | Ignorer la demande de confirmation des paramètres |
 
 ### Exemples
 
+Créer un projet Laravel dans le répertoire courant :
 ```bash
-# Créer un projet Laravel dans le répertoire courant
-conteur -l mon_projet
-
-# Créer un projet Laravel dans un répertoire spécifique
-conteur -l -P "/home/user/projects" mon_projet
-
-# Créer un projet sans confirmation
-conteur -l --no-confirm mon_projet
-
-# Mode debug
-conteur -l --debug mon_projet
+conteur --laravel mon_projet
 ```
 
-## ⚙️ Configuration
+Créer un projet Laravel dans un répertoire spécifique :
+```bash
+conteur -lP "/home/user/projects" mon_projet
+```
 
-Conteur utilise un système de configuration JSON flexible avec fusion de fichiers.
+## Configuration
 
 ### Fichiers de configuration
 
-- `config/default.json` : Configuration par défaut (ne pas modifier)
-- `config/custom.json` : Configuration personnalisée (recommandé)
-- `./config.json` : Configuration alternative à la racine
+Conteur utilise un système de configuration JSON flexible :
 
-**Ordre de priorité** : `./config.json` > `config/custom.json` > `config/default.json`
+- **Fichier par défaut** : `config/default.json` (ne pas modifier)
+- **Fichier utilisateur** : `~/.config/conteur/config.json` (personnalisable)
 
-### Créer une configuration personnalisée
+Le fichier utilisateur a la priorité et fusionne avec le fichier par défaut.
 
-Il est recommandé de créer un fichier `config/custom.json` plutôt que de modifier `config/default.json`.
+### Structure de configuration utilisateur
+```
+~/.config/conteur/
+├── config.json
+└── laravel/
+    ├── cmd.docker.sh (optionnel)
+    └── templates/ (optionnel)
+        ├── docker-compose.yml
+        └── Dockerfile
+```
 
-**Exemple de `config/custom.json` :**
+### Exemple de configuration
 
+Voici un exemple de `config.json` pour Laravel :
 ```json
 {
   "settings": {
-    "default_project_dir": "/home/user/mes-projets"
+    "default_project_dir": "/home/user/projects"
   },
   "projects": {
     "laravel": {
       "settings": {
-        "project_docker_files_dir": ".docker/dev",
+        "project_docker_files_dir": ".docker/development",
         "sail": {
-          "useSail": true,
+          "useSail": false,
           "devcontainer": true,
           "services": {
-            "mysql": true,
-            "redis": true,
-            "mailpit": true
+            "mysql": false,
+            "pgsql": false,
+            "mariadb": false,
+            "redis": false
           }
         }
       },
@@ -138,125 +120,139 @@ Il est recommandé de créer un fichier `config/custom.json` plutôt que de modi
 }
 ```
 
-### Options de configuration Laravel
+## Templates personnalisés
 
-#### Settings généraux
+### Créer un nouveau template
 
-- `default_project_dir` : Répertoire par défaut pour créer les projets
-- `project_docker_files_dir` : Répertoire relatif au projet pour les fichiers Docker (par défaut : `.docker/development`)
+1. Créez votre template dans `~/.config/conteur/laravel/templates/`
+2. Nommez-le avec l'extension `.template` (ex: `Dockerfile.template`)
+3. Utilisez des variables bash dans le template : `$VARIABLE` ou `${VARIABLE}`
+4. Déclarez le template dans votre `config.json`
 
-#### Laravel Sail
+### Variables disponibles
 
-- `useSail` : Utiliser Laravel Sail (true/false)
-- `devcontainer` : Créer un devcontainer (true/false)
-- `services` : Services Docker à inclure (mysql, pgsql, mariadb, redis, memcached, meilisearch, minio, selenium, mailpit)
-
-> ⚠️ **Note** : Si `useSail` est activé mais qu'aucun service n'est à `true`, les options par défaut de Laravel Sail seront appliquées.
-
-#### Configuration des fichiers
-
-Chaque fichier template peut être configuré avec :
-
-- `selected` : Copier le fichier ou l'ignorer (true/false)
-- `template` : Nom du template (l'extension `.template` est optionnelle)
-- `custom_filename` : Nom personnalisé pour le fichier de destination (optionnel)
-- `custom_project_dir` : Répertoire de destination relatif au projet (optionnel)
-- `variables` : Variables à remplacer dans le template (optionnel)
-
-## 📁 Architecture du projet
-
-```
-.
-├── config/                     # Fichiers de configuration
-│   ├── default.json           # Configuration par défaut
-│   └── readme.md
-├── conteur.sh                 # Point d'entrée principal
-├── fct/                       # Fonctions utilitaires
-│   ├── common.fct.sh
-│   └── terminal-tools.fct.sh
-├── install.sh                 # Script d'installation
-├── lib/                       # Bibliothèques par type de projet
-│   └── laravel.lib.sh
-├── LICENSE
-├── readme.md
-├── src/                       # Sources
-│   └── parse_arguments.sh
-├── templates/                 # Templates de fichiers
-│   └── laravel/
-│       ├── cmd.docker.sh      # Commandes Docker
-│       ├── custom/            # Templates personnalisés (prioritaires)
-│       │   └── readme.md
-│       └── default/           # Templates par défaut
-│           ├── docker-compose.yml.template
-│           ├── Dockerfile.template
-│           └── nginx.conf.template
-└── test.sh
-```
-
-## 🎨 Créer des templates personnalisés
-
-Les templates personnalisés doivent être placés dans `templates/laravel/custom/` et sont prioritaires sur les templates par défaut.
-
-### Convention de nommage
-
-- Le template doit terminer par l'extension `.template` (recommandé, prioritaire)
-- Le nom du fichier servira de base pour le fichier de destination
-
-### Ordre de priorité des templates
-
-Lors de la recherche d'un template, Conteur vérifie dans cet ordre :
-
-1. `templates/laravel/custom/monTemplate.template`
-2. `templates/laravel/custom/monTemplate`
-3. `templates/laravel/default/monTemplate.template`
-
-### Variables disponibles dans les templates
-
-Les variables suivantes sont disponibles dans tous les templates :
+Dans vos templates, vous pouvez utiliser ces variables globales :
 
 | Variable | Description | Exemple |
 |----------|-------------|---------|
+| `${PROJECT_NAME}` | Nom du projet | `mon_projet` |
+| `${PROJECT_PATH}` | Chemin complet du projet | `/home/user/projets/mon_projet` |
+| `${PROJECTS_DIR}` | Répertoire parent des projets | `/home/user/projets` |
 | `${LARAVEL_VERSION}` | Version de Laravel | `12.1.1.0` |
 | `${PHP_VERSION}` | Version de PHP requise | `8.4` |
-| `${PROJECT_NAME}` | Nom du projet | `mon_projet` |
-| `${PROJECTS_DIR}` | Répertoire parent du projet | `/home/user/projets` |
-| `${PROJECT_PATH}` | Chemin complet du projet | `/home/user/projets/mon_projet` |
 
-### Exemple de template personnalisé
+### Exemple : Ajouter un Dockerfile personnalisé
 
-**Fichier : `templates/laravel/custom/docker-compose.yml.template`**
+**1. Créez le template** : `~/.config/conteur/laravel/templates/Dockerfile.template`
+```dockerfile
+FROM php:${PHP_VERSION}-fpm
 
-```yaml
-version: '3.8'
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip
 
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ${PROJECT_NAME}_app
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - PHP_VERSION=${PHP_VERSION}
+# Installation des extensions PHP
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+# Installation de Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Définir le répertoire de travail
+WORKDIR /var/www/html
+
+# Copier les fichiers du projet
+COPY . .
+
+# Installation des dépendances Laravel
+RUN composer install --no-interaction --optimize-autoloader
+
+EXPOSE 9000
+CMD ["php-fpm"]
 ```
 
-## 🔧 Fichier cmd.docker.sh
+**2. Ajoutez-le dans votre config.json** :
+```json
+{
+  "projects": {
+    "laravel": {
+      "files": [
+        {
+          "selected": true,
+          "template": "Dockerfile",
+          "custom_filename": "Dockerfile",
+          "custom_project_dir": ".docker/development",
+          "variables": {
+            "PROJECT_NAME": "${PROJECT_NAME}",
+            "PHP_VERSION": "${PHP_VERSION}"
+          }
+        }
+      ]
+    }
+  }
+}
+```
 
-Le fichier `templates/laravel/cmd.docker.sh` contient les commandes Docker à exécuter pour créer le projet. Il peut être modifié selon vos besoins.
+**Résultat** : Conteur générera automatiquement un Dockerfile avec la bonne version de PHP pour votre projet Laravel.
 
-### Variables globales disponibles
+### Configuration du template
 
-Les mêmes variables que dans les templates sont disponibles dans ce fichier.
+Chaque template dans `files[]` accepte ces propriétés :
 
-## 📄 Licence
+| Propriété | Type | Description |
+|-----------|------|-------------|
+| `selected` | booléen | Active ou désactive le template |
+| `template` | string | Nom du fichier template (sans `.template`) |
+| `custom_filename` | string | Nom du fichier final (optionnel) |
+| `custom_project_dir` | string | Répertoire de destination (optionnel, `.` pour la racine) |
+| `variables` | objet | Variables à remplacer dans le template |
 
-Ce projet est sous licence **GPL 3.0**.
+### Ordre de priorité des templates
 
-## 👤 Auteur
+Conteur recherche les templates dans cet ordre :
 
-**Adam Rousselle**
+1. `~/.config/conteur/laravel/templates/mon-template.template`
+2. `~/.config/conteur/laravel/templates/mon-template`
+3. Templates par défaut de Conteur
+
+## Personnalisation avancée
+
+### Commande Docker personnalisée
+
+Pour personnaliser la création du projet Docker, créez le fichier :
+`~/.config/conteur/laravel/cmd.docker.sh`
+
+Toutes les variables globales de Conteur y sont disponibles. Consultez `config/cmd.docker.laravel.example` pour un exemple commenté.
+
+## Dépannage
+
+### Mode debug
+
+Activez le mode debug pour plus d'informations :
+```bash
+conteur --laravel --debug mon_projet
+```
+
+### Réinitialiser la configuration
+
+Supprimez votre configuration utilisateur pour revenir aux paramètres par défaut :
+```bash
+rm -rf ~/.config/conteur/
+```
+
+## Licence
+
+GPL 3.0 - Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+## Contribution
+
+Les contributions sont les bienvenues ! Consultez le guide de développement pour plus d'informations.
 
 ---
 
-**Note** : D'autres types de projets seront ajoutés progressivement selon l'avancement du développement.
+**Note** : Ce README concerne l'utilisation de Conteur. Pour contribuer au développement, consultez la documentation développeur séparée.

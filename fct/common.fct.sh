@@ -10,7 +10,10 @@ check_packages_requirements() {
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
     if ! command -v envsubst >/dev/null 2>&1; then
-        eout "envsubst n'est pas disponible. Installez-le avec : sudo apt install gettext-base"
+        eout "La commande 'envsubst' n'est pas disponible. Installez-la avec : sudo apt install gettext-base"
+    fi
+    if ! command -v diff >/dev/null 2>&1; then
+        eout "La commande 'diff' n'est pas disponible. Installez-la avec sudo apt install diffutils"
     fi
 }
 
@@ -41,19 +44,59 @@ convert_pseudo_bool(){
     return 0
 }
 
+# return message+true|exit
+create_config_dir(){
+    [ -z "${JSON_CONFIG}" ] && eout "create_config_dir() : Le JSON de configuration n'est pas initialisé."
+    [ -z "${CONFIG_DIR}" ] && eout "La variable globale \$CONFIG_DIR n'est pas initialisée."
+    check_json_config_integrity "${JSON_CONFIG}"
+
+    lout "Création du répertoire de configuration"
+
+    local project_list=$(jq -r '.projects | keys? | .[]?' <<< "${JSON_CONFIG}")
+    [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
+
+    for project_type in $project_list; do
+        local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
+        local template_dir="${lib_dir}/templates"
+        local docker_example_path=""
+        local docker_example_template_all="${ROOT_DIR}/config/cmd.docker.all.example"
+        local docker_example_template_specific="${ROOT_DIR}/config/cmd.docker.${project_type}.example"
+        [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
+        [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
+
+        debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
+        ! mkdir -p "${template_dir}" && fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions" && return 1
+        if [ -f "${docker_example_path}" ]; then
+            cp "${docker_example_path}" "${lib_dir}/cmd.docker.sh" || wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${lib_dir}' a échoué"
+        fi
+    done
+    {
+        echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
+    } || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
+
+    return 0
+}
+
 # return empty|exit
-check_globals(){
+set_check_globals(){
     debug_ "check_globals() :
-        PROJECTS_DIR=$PROJECTS_DIR
-        PROJECT_NAME=$PROJECT_NAME
-        PROJECT_PATH=$PROJECT_PATH
-        PROJECT_TYPE=$PROJECT_TYPE"
+        PROJECTS_DIR=${PROJECTS_DIR}
+        PROJECT_NAME=${PROJECT_NAME}
+        PROJECT_PATH=${PROJECT_PATH}
+        PROJECT_TYPE=${PROJECT_TYPE}
+        CONFIG_DIR=${CONFIG_DIR}"
 
     [ -z "${PROJECT_NAME}" ] && eout "Aucun nom de projet donné. Spécifiez un nom de projet à l'appel du programme."
     [ -z "${PROJECT_TYPE}" ] && eout "Aucun type de projet donné. Spécifiez un type de projet à l'appel du programme (pax ex -l ou --laravel)."
+    [ -z "${CONFIG_DIR}" ] && eout "La variable globale CONFIG_DIR doit être initialisée"
+    [ -z "${JSON_CONFIG}" ] && eout "La variable globale JSON_CONFIG doit être initialisée"
+    [ -z "${COMMAND_NAME}" ] && eout "La variable globale COMMAND_NAME doit être initialisée dans ./src/vars.sh"
+
+    [[ ! "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
+
     # PROJECT_NAME
     local name_pattern='^[a-zA-Z0-9._-]{2,}$'
-    if [[ ! "$PROJECT_NAME" =~ $pattern ]]; then
+    if [[ ! "${PROJECT_NAME}" =~ $pattern ]]; then
         eout "Le nom de projet n'est pas valide. Il doit faire au moins 2 caractères et ne contenir que des lettres, chiffres, '.', '_' ou '-'."
     fi
 
@@ -67,14 +110,14 @@ check_globals(){
             if ask_yn "Créer le projet dans ce répertoire (${PWD}) à la place ?"; then
                 PROJECTS_DIR="${PWD}"
             else
-                lout "Abandon par l'utilisateur, configurez le répertoire des projets avec l'un de ces choix :\n\t- L'option du programme -P <répertoire>\n\t- La variable '.settings.default_projects_dir' dans 'config/custom.json'\n\t- En executant ce programme dans le répertoire ciblé."
+                lout "Abandon par l'utilisateur, configurez le répertoire des projets avec l'un de ces choix :\n\t- L'option du programme -P <répertoire>\n\t- La variable '.settings.default_projects_dir' dans '${CONFIG_DIR}/config.json'\n\t- En executant ce programme dans le répertoire ciblé."
                 exit 1
             fi
         else
             PROJECTS_DIR="$(clean_path_variable "absolute" "${projects_dir_from_json}")"
         fi
     else
-        if [[ ! "$PROJECTS_DIR" == /* ]]; then
+        if [[ ! "${PROJECTS_DIR}" == /* ]]; then
             PROJECTS_DIR="$(clean_path_variable "absolute" "${PWD}/${PROJECTS_DIR}")"
         fi
     fi # PROJECTS_DIR est maintenant forcément un chemin absolu
@@ -91,8 +134,45 @@ check_globals(){
     fi
 
     # PROJECT_TYPE
-    [ -d "${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
-    [ -f "${MAIN_SCRIPT_DIR}/lib/${PROJECT_TYPE}.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
+    [ -d "${ROOT_DIR}/lib/${PROJECT_TYPE}/templates" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucun template associé pour ce type de projet. Les templates prévu ont été supprimés, ou le code du programme a été modifié."
+    [ -f "${ROOT_DIR}/lib/${PROJECT_TYPE}/main.lib.sh" ] || eout "Type de projet ${PROJECT_TYPE} inconnu. Aucune bibliothèque associé pour ce type de projet. La bibliothèque associée a été supprimée, ou le code du programme a été modifié."
+
+    # CONFIG_DIR
+    if [ ! -d "${CONFIG_DIR}" ]; then
+        if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
+            create_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
+        else
+            wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${ROOT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
+            wout "Sans répertoire de configuration, ${COMMAND_NAME} ne fonctionnera qu'avec les templates et valeurs par défaut."
+        fi
+    fi
+
+    # TEMPLATES
+    DEFAULT_TEMPLATE_DIR="${ROOT_DIR}/lib/${PROJECT_TYPE}/templates"
+    [ ! -d "${DEFAULT_TEMPLATE_DIR}" ] && eout "Le répertoire des templates par défaut n'a pas été trouvé dans '${DEFAULT_TEMPLATE_DIR}'. Vérifier les permissions."
+
+    CUSTOM_TEMPLATE_DIR="$(clean_path_variable "absolute" "${CONFIG_DIR}/${PROJECT_TYPE}/templates")"
+    if [ ! -d "${CUSTOM_TEMPLATE_DIR}" ]; then
+        ! ask_yn "Le répertoire de configuration des templates ${PROJECT_TYPE} n'a pas été trouvé dans '${CUSTOM_TEMPLATE_DIR}'. Faut-il continuer avec les templates par défaut uniquement ?" && {
+            lout "Abandon de l'utilisateur"
+            exit 0
+        }
+        CUSTOM_TEMPLATE_DIR=""
+    fi
+
+    # DOCKER COMMAND
+    DOCKER_CMD_PATH="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
+    local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
+    local example_docker_cmd="${ROOT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
+    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/cmd.docker.all.example"
+
+    if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
+        debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
+        if [ ! -f "${example_docker_cmd}" ] || ! diff -q -b -B "${example_docker_cmd}" "${custom_docker_cmd}" > /dev/null; then
+            DOCKER_CMD_PATH="${custom_docker_cmd}"
+            lout "Script personnalisé de création de projet chargé depuis les fichiers de configuration"
+        fi
+    fi
 }
 
 # return bool
@@ -158,15 +238,11 @@ check_json_config_integrity(){
 
 # return JSON|exit
 merge_config_json(){
-    local default_path="${MAIN_SCRIPT_DIR}/config/default.json"
-    local custom_path="${MAIN_SCRIPT_DIR}/config.json"
+    local default_path="${ROOT_DIR}/config/default.json"
+    local custom_path="${CONFIG_DIR}/config.json"
 
-    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "merge_config_json() : la variable \$MAIN_SCRIPT_DIR n'est pas initialisée"
+    [ -d "${ROOT_DIR}" ] || eout "merge_config_json() : la variable \$ROOT_DIR n'est pas initialisée"
     [ -f "${default_path}" ] || eout "merge_config_json() : Fichier de configuration json requis dans ${default_path}"
-    
-    if [ ! -f "${custom_path}" ]; then
-        custom_path="${MAIN_SCRIPT_DIR}/config/custom.json"
-    fi
 
     local default_json=$(cat "${default_path}")
 
@@ -230,13 +306,13 @@ copy_files_from_template() {
         \$project_docker_dir_relative=${project_docker_dir_relative}
         \$project_docker_dir=${project_docker_dir}"
 
-    debug_ "Liste des fichier à copier"
+    debug_ "copy_files_from_template() : Liste des fichier à copier"
     local copy_errors=0
     jq -c ".projects.${PROJECT_TYPE}.files[]" <<< "${json_config}" | while read -r file_config; do
-        debug_ "Lecture du fichier :\n\t${file_config}"
+        debug_ "copy_files_from_template() : Lecture du fichier :\n\t${file_config}"
         local is_selected="$(return_unified_json_bool $(jq -r '.selected' <<< "${file_config}"))"
         if [ "${is_selected}" = true ]; then
-            debug_ "Copie du fichier"
+            debug_ "copy_files_from_template() : Copie du fichier"
             ! copy_file "${file_config}" && ((copy_errors++))
         fi
     done
@@ -282,20 +358,21 @@ copy_file() {
     fi
 
     export_vars_list "${json_file_var_list}"
-    debug_ "copy_file() Variables exportées :\n\t${EXPORTED_VARS}"
+    debug_ "copy_file() : Variables exportées :\n\t${EXPORTED_VARS}"
+    lout "Copie de $(basename ${file_path})"
     if [ ${#EXPORTED_VARS[@]} -eq 0 ]; then
         if cp "${template_path}" "${file_path}"; then
-            sout "copie sans variables (raw) de ${template_path} -> ${file_path} effectuée"
+            debug_ "copie sans variables (raw) de ${template_path} -> ${file_path} effectuée"
             return 0
         fi
-        fout "La copie sans variables de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée. Vérifier les droits d'accès."
+        fout "La copie sans variables de\n\t'${template_path}'\n\tvers\n\t'${file_path}'\n\ta échouée. Vérifier les droits d'accès."
         return 1
     else
         if envsubst "${EXPORTED_VARS}" < "${template_path}" > "${file_path}"; then
-            sout "copie dynamique (avec variables) de ${template_path} -> ${file_path} effectuée"
+            debug_ "copie dynamique (avec variables) de ${template_path} -> ${file_path} effectuée"
             return 0
         fi
-        fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t\t'${template_path}'\n\t\tvers\n\t\t'${file_path}'\n\t\ta échouée."
+        fout "La copie en mode dynamique (variables '${exported_vars_list}') de\n\t'${template_path}'\n\tvers\n\t'${file_path}'\n\ta échouée."
         return 1
     fi
 }
@@ -369,10 +446,10 @@ get_project_file_path(){
 # return result+true|wout+false
 find_template_from_name() {
     local name="${1}"
-    local default_templates_dir="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/default"
-    local custom_templates_dir="${MAIN_SCRIPT_DIR}/templates/${PROJECT_TYPE}/custom"
+    local default_templates_dir="${DEFAULT_TEMPLATE_DIR}"
+    local custom_templates_dir="${CUSTOM_TEMPLATE_DIR}"
     [ -z "${name}" ] && eout "find_template_from_name() : Aucun nom passé en premier paramètre"
-    [ -z "${MAIN_SCRIPT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$MAIN_SCRIPT_DIR' doit être initialisé"
+    [ -z "${ROOT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$ROOT_DIR' doit être initialisé"
     [ -z "${PROJECT_TYPE}" ] && eout "find_template_from_name() : La variable globale '\$PROJECT_TYPE' doit être initialisé"
     [ -d "${default_templates_dir}" ] || eout "find_template_from_name() : Le répertoire de templates par défaut est introuvable dans : '${default_templates_dir}'"
     
@@ -399,6 +476,21 @@ find_template_from_name() {
     fi
 }
 
+update_conteur(){
+    local update_script_path="${ROOT_DIR}/install/update.sh"
+    [ -z "${ROOT_DIR}" ] && eout "update_conteur() : La variable globale ROOT_DIR doit être initialiser avant l'apel de la fonction."
+    [ ! -f "${update_script_path}" ] && eout "update_conteur() : Le script de mise à jour est introuvable."
+    
+    wout "Feature à venir prochainement, une V1.0 doit être en mode release pour tester cette fonctionnalité"
+    # source "${update_script_path}"
+    exit 0
+}
+show_version() {
+    [ -z "${COMMAND_NAME}" ] && eout "show_version() : La variable gloale COMMAND_NAME n'est pas initialisée"
+    [ -z "${VERSION}" ] && eout "show_version() : La variable gloale VERSION n'est pas initialisée"
+
+    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}-------------------------------------------"
+}
 show_summary() {
     local BOLD='\033[1m'
     local COLOR_2='\033[0;32m'
@@ -440,9 +532,9 @@ show_summary() {
     echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
     
     # Lignes du tableau
-    print_table_row "Nom du projet" "$PROJECT_NAME"
-    print_table_row "Type d'application" "$PROJECT_TYPE"
-    print_table_row "Répertoire racine" "$PROJECTS_DIR"
+    print_table_row "Nom du projet" "${PROJECT_NAME}"
+    print_table_row "Type d'application" "${PROJECT_TYPE}"
+    print_table_row "Répertoire racine" "${PROJECTS_DIR}"
 
     echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
     

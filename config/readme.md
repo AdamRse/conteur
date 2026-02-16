@@ -1,65 +1,19 @@
-# Fichiers de configuration JSON
+# cmd.docker.sh
+Les fichier `cmd.docker.sh` servent à créer le projet du type voulu, avec une commande docker.
+- `lib/<bibliothèque>/cmd.docker.sh` : Commande par défaut, si l'utilisateur ne personnalise pas sa propre commande
+- `~/.config/conteur/<bibliothèque>/cmd.docker.sh` : Commande personnalisée, utilisée par l'utilisateur. Si le fichier est vide ou similaire à `config/cmd.docker.*.example`, il sera ignoré, c'est `lib/<bibliothèque>/cmd.docker.sh` qui servira à créer le projet.
+- `config/cmd.docker.all.example` : Template utilisé pour donner un exemple d'utilisation et des instructions à l'utilisateur
+- `config/cmd.docker.<bibliothèque>.example` Template utilisé pour donner un exemple d'utilisation et des instructions à l'utilisateur pour une bibliothèque précise. Si ce template existe pour la bibliothèque, alors il sera priorisé.
+- Les fichiers `config/cmd.docker.*.example` sont copiés par défaut dans `~/.config/conteur/<bibliothèque>/cmd.docker.sh` correspondant, pour donner un exemple ou des instructions d'utilisatuion à l'utilisateur.
+# Ajouter un fichier d'exemple de commande
+Les fichiers `config/cmd.docker.*.example` seront utilisés comme fichiers d'exemple dans le répertoire de configuration (par défaut dans `~/.config/conteur`, configurable avec la variable `CONFIG_DIR` dans le .env).  
+Lors de la création d'une nouvelle bibliothèque (`/lib`), il est conseillé de donner un exemple d'utilisation avec un fichier `config/cmd.docker.<bibliothèque>.example` associé.
+- **Règle de nommage** : `config/cmd.docker.<bibliothèque>.example`  
+    - `<bibliothèque>` doit correspondre au nom d'un champ `.projects.<bibliothèque>` dans `config/default.json`
+- Si `config/cmd.docker.<bibliothèque>.example` n'est pas trouvé, c'est `config/cmd.docker.all.example` qui sera pris en exemple.
+- Si aucun fichier existe, aucun fichier d'exemple ne sera créé
 
-Il y a 3 fichiers de configuration possibles : `config/default.json`, `config/custom.json` et `./config.json` (à la racine).
-
-Il est conseillé de ne pas modifier `default.json`, mais uniquement `custom.json`. Les fichiers sont fusionnés par le script : **l'ordre de priorité est `./config.json` > `config/custom.json` > `config/default.json`.**
-
-## Subtilité de configuration
-
-Il est possible d'ajouter des valeurs dynamiques (variables globales bash) mises à disposition par les bibliothèques dans `/lib`.
-
-Les variables sont consultables dans chaque fichier bibliothèque `lib/<bibliothèque>.lib.sh`, dans la section `-- GLOBALS AVAILABLES --` au début du fichier.
-
-## Exemple d'utilisation de variables
-
-J'ai un template `Dockerfile.template` dans lequel je veux créer une image à partir de la version de PHP requise pour la dernière version Laravel.
-
-1. Dans `templates/laravel/custom/Dockerfile.template`, j'écris la ligne : `FROM php:${PHP_LARAVEL_LATEST}-fpm`.
-2. Dans `config/custom.json`, je demande à remplacer `${PHP_LARAVEL_LATEST}` dans le fichier généré par la version de PHP fournie par la bibliothèque `lib/laravel.lib.sh`.
-3. Pour ce faire, je définis la variable `PHP_LARAVEL_LATEST` dans la section `variables` du fichier concerné, et je lui assigne `${PHP_VERSION}` (variable fournie par Conteur) :
-```json
-{
-    "projects": {
-        "laravel": {
-            "files": [
-                {
-                    "selected": true,
-                    "template": "Dockerfile",
-                    "variables": {
-                        "PHP_LARAVEL_LATEST": "${PHP_VERSION}"
-                    }
-                }
-            ]
-        }
-    }
-}
-```
-Une fois le script lancé, le `Dockerfile` sera généré en remplaçant `${PHP_LARAVEL_LATEST}` par la valeur réelle contenue dans `${PHP_VERSION}` !
-
-## Aide des sections du JSON de configuration
-
-- `settings.default_project_dir` : (optionnel) Répertoire où seront créés les projets.
-    - `projects` : Contient la configuration par type de projet.
-- `<bibliothèque>`: Options relatives à la création d'un projet avec la bibliothèque nommée (par ex : `laravel`).
-    - `settings.project_docker_files_dir` : Répertoire de destination des fichiers Docker (relatif au projet).
-    - `settings.sail` : Configuration de Laravel Sail.
-        - `useSail` : Booléen. Si `false`, les options Sail sont ignorées.
-        - `devcontainer` : Booléen, ajoute le support Devcontainer.
-        - `services` : Liste des services Sail (mysql, pgsql, redis, etc.) à activer (`true`/`false`).
-    - `files` : Liste des templates à traiter. Chaque objet de la liste contient :
-        - `template` : **(Obligatoire)** Nom du template (ex: `nginx.conf`).
-        - `selected` : Booléen. Si `false`, le fichier n'est pas généré.
-        - `custom_filename` : (optionnel) Nom différent pour le fichier de destination.
-        - `custom_project_dir` : (optionnel) Écrase le répertoire de destination par défaut pour ce fichier précis.
-        - `variables` : Paires Clé/Valeur pour le remplacement textuel. Les variables Bash comme `${PROJECT_NAME}` sont interprétées.
-
-## Liste exhaustive des variables globales disponibles par bibliothèque
-
-Ces variables sont utilisables partout dans vos templates ou dans les valeurs du JSON :
-
-- **Variables communes (tous projets) :**
-    - `${PROJECT_NAME}` : Nom que vous avez donné au projet.
-    - `${PROJECT_PATH}` : Chemin complet vers le dossier du projet.
-- **Pour la bibliothèque Laravel :**
-    - `${LARAVEL_VERSION}` : Dernière version stable de Laravel détectée.
-    - `${PHP_VERSION}` : Version de PHP recommandée pour cette version de Laravel.
+> [!NOTE]
+> - Si le fichier `config/cmd.docker.<bibliothèque>.example` correspond à `~/.config/conteur/<bibliothèque>/cmd.docker.sh`, ce qui est le cas par défaut, alors le fichier de configuration `~/.config/conteur/<bibliothèque>/cmd.docker.sh` sera ignoré, c'est `lib/<bibliothèque>/cmd.docker.sh` qui sera utilisé.  
+> - Le fichier `~/.config/conteur/<bibliothèque>/cmd.docker.sh` sera considéré comme un exemple non modifié par l'utilisateur, et ne sera pas pris en compte.  
+> - La comparaison entre `~/.config/conteur/<bibliothèque>/cmd.docker.sh` et `config/cmd.docker.<bibliothèque>.example` ne prend pas en compte les modifications d'espaces ou de saut de ligne

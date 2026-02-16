@@ -129,6 +129,8 @@ usage(){
     echo "                            Exemple :"
     echo "                            ${COMMAND_NAME} -lP \"/home/user/projects\" \"my_project\""
     echo "                            Créera les fichiers du projet dans \"/home/user/projects/my_project\""
+    echo "  -U, --update          Effectuer une mise à jour"
+    echo "  -V, --version         Afficher la version"
     echo "      --debug           Activer le mode debug, plus verbeux"
     echo "      --no-confirm      Ignore la demmande de confirmation des paramètres en début de script"
     exit 0

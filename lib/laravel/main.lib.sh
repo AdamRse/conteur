@@ -1,12 +1,11 @@
 # -- GLOBALS AVAILABLES --
-# Variables globales utilisables dans le json de configuration config/custom.json et config/default.json
+# Variables globales utilisables dans le json de configuration
 # ${LARAVEL_VERSION} : Dernière version stable de Laravel
 # ${PHP_VERSION} : Version de PHP associée à la dernière version stable de laravel
 
 # -- LARAVEL VARS --
 
 laravel_script_name=$(basename $0)
-docker_cmd_path="${MAIN_SCRIPT_DIR}/templates/laravel/cmd.docker.sh"
 
 # variables export pour template
 export PHP_VERSION=""
@@ -18,7 +17,7 @@ export PROJECT_NAME
 # Prépare les variables et vérifie les fichiers de configuration
 # return null
 laravel_check_requirments() {
-    [ -d "${MAIN_SCRIPT_DIR}" ] || eout "La variable 'MAIN_SCRIPT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
+    [ -d "${ROOT_DIR}" ] || eout "La variable 'ROOT_DIR' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PROJECT_PATH}" ] || eout "La variable 'PROJECT_PATH' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PROJECT_NAME}" ] || eout "La variable 'PROJECT_NAME' doit être initialisée avant l'appel de ${laravel_script_name}"
     [ -n "${PHP_VERSION}" ] || eout "La variable 'PHP_VERSION' doit être initialisée."
@@ -76,7 +75,7 @@ laravel_create_sail_project(){
         \$url_sail_bash_execute=$url_sail_bash_execute"
 
     if [ -z "${services_array}" ]; then
-        if ! ask_yn "Attention ! Aucun service n'a été sélectionné pour le projet laravel, mais Laravel Sail fournit des services par défaut si aucun n'est sélectionné. Ajouter un moin 1 service dans 'config/custom.json' pour ne pas avoir les services par défaut de Laravel Sail. Continuer avec les service par défaut de Laravel Sail ?"; then
+        if ! ask_yn "Attention ! Aucun service n'a été sélectionné pour le projet laravel, mais Laravel Sail fournit des services par défaut si aucun n'est sélectionné. Ajouter un moin 1 service dans '${CONFIG_DIR}/config.json' pour ne pas avoir les services par défaut de Laravel Sail. Continuer avec les service par défaut de Laravel Sail ?"; then
             lout "Arrêt demmandé par l'utilisateur."
             exit 0
         fi
@@ -139,12 +138,12 @@ laravel_sail_get_services_in_array() {
 # return bool
 laravel_execute_cmd_docker(){
     local user_script_fail=0
-    [ -f "${docker_cmd_path}" ] || eout "Commande docker non trouvée dans '${docker_cmd_path}'"
+    [ -f "${DOCKER_CMD_PATH}" ] || eout "Commande docker non trouvée dans '${DOCKER_CMD_PATH}'"
 
     set -E
     set -e
     trap 'user_script_fail=1' ERR
-    source "${docker_cmd_path}" || user_script_fail=1
+    source "${DOCKER_CMD_PATH}" || user_script_fail=1
     trap - ERR
     set +e
     set +E
@@ -177,7 +176,7 @@ create_project() {
         if laravel_execute_cmd_docker; then
             sout "Projet Laravel avec la commande docker créé avec succès."
         else
-            eout "La commande docker dans le fichier '${docker_cmd_path}' a échoué."
+            eout "La commande docker dans le fichier '${DOCKER_CMD_PATH}' a échoué."
         fi
     else
         eout "Variable ambigue useSail dans le JSON de configuration. Doit être un booléen"
