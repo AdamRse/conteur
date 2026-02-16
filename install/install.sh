@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # -- VARIABLES GLOBALES
-COMMAND_NAME=""
-VERSION=""
-source "${ROOT_DIR}/src/vars.sh" || exit 1
-
 INSTALL_SCRIPT_PATH="$(readlink -f "$0")"
 ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
 
+COMMAND_NAME=""
+VERSION=""
+
+source "${ROOT_DIR}/src/vars.sh" || exit 1
 INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
 BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
@@ -15,8 +15,8 @@ source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 # -- CONDITIONS
-[[ $EUID -ne 0 ]] && echo "Ce script doit être exécuté en tant que root (utilisez sudo)."
-[[ "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
+[[ $EUID -ne 0 ]] && eout "Ce script doit être exécuté en tant que root (utilisez sudo)."
+[[ ! "${COMMAND_NAME}" =~ ^[a-zA-Z0-9_-]+$ ]] && eout "La commande '${COMMAND_NAME}' (./src/vars.sh) contient des caractères interdits"
 
 if command -v "${COMMAND_NAME}" >/dev/null 2>&1; then
     [ ! -f "${ROOT_DIR}/install/update.sh" ] && eout "${COMMAND_NAME} est déjà installé, impossible de trouver le script de mise à jour"
@@ -43,14 +43,13 @@ mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
 [[ -f "${env_tmp_path}" ]] && cp "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
 lout "Synchronisation des fichiers..."
-rsync -r --exclude={'.git', '.gitignore'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
+rsync -r --exclude={'.git', '.gitignore', 'install/install.sh'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
-chmod +x "${INSTALL_DIR}/${COMMAND_NAME}.sh"
 find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
 find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
-chmod +x "${INSTALL_DIR}/install/update.sh ${INSTALL_DIR}/install/install.sh"
+chmod +x "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${INSTALL_DIR}/install/update.sh"
 
 lout "Création du lien symbolique dans /usr/local/bin..."
 if [[ -L "${BIN_LINK}" ]]; then
