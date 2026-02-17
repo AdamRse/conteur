@@ -1,8 +1,24 @@
 #!/bin/bash
 
-# -- CONFIGURATION GITHUB (À adapter)
-GITHUB_USER="AdamRse"
-GITHUB_REPO="conteur"
+# /!\ Le script ne peut pas être appelé sans contexte, il faut que les variables globales soient préalablement chargées
+
+
+[ -z "${VERSION}" ] && { eout "Erreur, La variable globale VERSION doit être initialisée à l'appel du script"; exit 1; }
+
+REPO_URL="https://github.com/AdamRse/conteur/releases/latest"
+GITHUB_HEADER=$(curl -sI "${REPO_URL}")
+LATEST_VERSION=$(grep -i "location:" <<< "${GITHUB_HEADER}" | awk -F'/' '{print $NF}' | tr -cd '0-9.')
+
+
+[ -z "${LATEST_VERSION}" ] && eout "Impossible de récupérer la dernière version sur github.\n\turl : ${REPO_URL}\n\t--------------------------\nHEADER REÇU\n--------------------------\n${GITHUB_HEADER}"
+[[ ! "${LATEST_VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]] && eout "La version récupérée ($LATEST_VERSION}) n'est pas un numéro de version valide"
+
+lout "Latest : v${LATEST_VERSION}\n\tLocale : v${VERSION}"
+[[ "${LATEST_VERSION}" = "${VERSION}" ]] && { lout "La version locale est à jour."; exit 0; }
+
+lout "Lancement de la mise à jour"
+
+# -------------------------
 
 # -- CHARGEMENT DE L'ENVIRONNEMENT LOCAL
 # On détermine le dossier racine à partir de l'emplacement du script d'update
@@ -74,3 +90,5 @@ chmod +x "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${INSTALL_DIR}/install/update.sh"
 rm -rf "${TMP_DIR}"
 
 sout "Mise à jour vers la version ${LATEST_VERSION} terminée avec succès !"
+
+https://github.com/AdamRse/conteur/releases/download/release/conteur.tar.gz

@@ -16,17 +16,17 @@ DEFAULT_TEMPLATE_DIR=""
 CUSTOM_TEMPLATE_DIR=""
 JSON_CONFIG=""
 DOCKER_CMD_PATH=""
-source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
-source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
-source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 if [ -f "${ROOT_DIR}/.env" ]; then
     source "${ROOT_DIR}/.env"
 else
     wout "Aucun fichier d'environement trouvé dans '${ROOT_DIR}', certaines valeurs seront appliquées par défaut"
     sleep 1
 fi
+source "${ROOT_DIR}/src/vars.sh" || exit 1
+source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
+source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 # -- CHECKS --
 lout "Vérification des dépendances"
