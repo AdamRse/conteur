@@ -14,9 +14,9 @@ source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 remove_config_dir(){
-    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    [ ! -d "${USER_HOME}" ] && USER_HOME="/home/$SUDO_USER"
-    [ ! -d "${USER_HOME}" ] && USER_HOME="$HOME"
+    USER_HOME=$(getent passwd "${SUDO_USER}" | cut -d: -f6)
+    [ ! -d "${USER_HOME}" ] && USER_HOME="/home/${SUDO_USER}"
+    [ ! -d "${USER_HOME}" ] && USER_HOME="${HOME}"
     [ ! -d "${USER_HOME}" ] && {
         fout "Impossible de déterminer le répertoire HOME de l'utilisateur."
         return 1
@@ -34,7 +34,7 @@ remove_config_dir(){
         fout "Impossible de supprimer '${CONFIG_DIR}'" && return 1
     fi
 
-    lout "L'utilisateur a choisis de garder le répertoire de configuration de ${COMMAND_NAME} dans '${CONFIG_DIR}'"
+    lout "L'utilisateur a choisit de garder le répertoire de configuration de ${COMMAND_NAME} dans '${CONFIG_DIR}'"
     return 0
 }
 

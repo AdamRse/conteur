@@ -11,6 +11,7 @@ VERSION=""
 CONFIG_DIR=""
 INSTALL_DIR=""
 BIN_LINK=""
+DEBUG_MODE=false
 source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
@@ -28,9 +29,9 @@ fi
 
 check_packages_requirements
 
-USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-[ ! -d "${USER_HOME}" ] && USER_HOME="/home/$SUDO_USER"
-[ ! -d "${USER_HOME}" ] && USER_HOME="$HOME"
+USER_HOME=$(getent passwd "${SUDO_USER}" | cut -d: -f6)
+[ ! -d "${USER_HOME}" ] && USER_HOME="/home/${SUDO_USER}"
+[ ! -d "${USER_HOME}" ] && USER_HOME="${HOME}"
 [ ! -d "${USER_HOME}" ] && eout "Impossible de déterminer le répertoire HOME de l'utilisateur pour initialiser les fichiers de configuration."
 CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
 

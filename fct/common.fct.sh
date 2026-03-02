@@ -180,7 +180,7 @@ is_json_var(){
     local json_test="${1}"
     [ -z "${json_test}" ] && eout "is_json_var() : Aucun paramètre passé"
 
-    if ! jq -e . <<< "$json_test" >/dev/null 2>&1; then
+    if ! jq -e . <<< "${json_test}" >/dev/null 2>&1; then
         return 1
     fi
     return 0
@@ -227,9 +227,12 @@ check_json_config_integrity(){
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
     debug_ "Vérification du contenu logique"
-    local has_project=$(jq ".projects.${PROJECT_TYPE}" <<< "$json_test")
-    if [ "$has_project" == "null" ]; then
-        eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
+
+    if [ -n "${PROJECT_TYPE}" ]; then # Si vide, est appelé par un autre script, comme install
+        local has_project=$(jq ".projects.${PROJECT_TYPE}" <<< "$json_test")
+        if [ "$has_project" == "null" ]; then
+            eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
+        fi
     fi
 
     # Plus de vérifications logique à faire
