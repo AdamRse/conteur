@@ -9,10 +9,9 @@ ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
 COMMAND_NAME=""
 VERSION=""
 CONFIG_DIR=""
-
+INSTALL_DIR=""
+BIN_LINK=""
 source "${ROOT_DIR}/src/vars.sh" || exit 1
-INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
-BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
@@ -55,7 +54,7 @@ mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
 [[ -f "${env_tmp_path}" ]] && mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
 lout "Synchronisation des fichiers..."
-rsync -r --exclude={'.git', '.gitignore', 'install/install.sh'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
+rsync -r --exclude="{'.git', '.gitignore', 'install/install.sh'}" "${ROOT_DIR}/." "${INSTALL_DIR}/"
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
