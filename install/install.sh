@@ -12,6 +12,8 @@ CONFIG_DIR=""
 INSTALL_DIR=""
 BIN_LINK=""
 DEBUG_MODE=false
+USER_NAME="$(logname)"
+USER_MAIN_GROUP="$(id -gn "$REAL_USER")"
 source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
@@ -55,7 +57,12 @@ mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
 [[ -f "${env_tmp_path}" ]] && mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
 lout "Synchronisation des fichiers..."
-rsync -r --exclude="{'.git', '.gitignore', 'install/install.sh'}" "${ROOT_DIR}/." "${INSTALL_DIR}/"
+sudo rsync -r --exclude="{
+    '.git',
+    '.gitignore',
+    'install/install.sh',
+    'install/dev.install.sh'
+    }" "${ROOT_DIR}/." "${INSTALL_DIR}/"
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
@@ -67,7 +74,7 @@ lout "Création du lien symbolique dans /usr/local/bin..."
 if [[ -L "${BIN_LINK}" ]]; then
     rm "${BIN_LINK}"
 fi
-ln -s "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${BIN_LINK}" || fout "Échec de création du lien symbolique."
+sudo ln -s "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${BIN_LINK}" || fout "Échec de création du lien symbolique."
 
 
 # -- SUCCESS
@@ -81,6 +88,12 @@ fi
 if ask_yn "Créer les fichiers de configuration de l'utilisateur dans '${CONFIG_DIR}' ?"; then
     lout "Création des fichiers de configuration dans '${CONFIG_DIR}'"
     create_config_dir
+    if [ -n "${USER_NAME}" ] && [ -n "${USER_MAIN_GROUP}" ]; then
+        sudo chown -R "${USER_NAME}:${USER_MAIN_GROUP}" "${CONFIG_DIR}"
+    else
+        wout "Impossible de trouver le nom d'utilisateur ou son groupe principal, pour paramétrer les droits d'accès aux fichiers de config."
+        wout "Veuillez donner les bon droits au fichier de configurations utilisateur dans '${CONFIG_DIR}'"
+    fi
 else
     wout "Les fichiers de configuration ne sont pas installés."
 fi

@@ -1,4 +1,4 @@
-PARSED_OPTIONS=$(getopt -o hlUP: --long laravel,updatehelp,debug,no-confirm,path: -n "${0}" -- "${@}")
+PARSED_OPTIONS=$(getopt -o hlvUP: --long laravel,version,update,help,debug,no-confirm,path: -n "${0}" -- "${@}")
 
 if [ $? -ne 0 ]; then
     eout "L'interpreteur de commande n'a pas fonctionné"

@@ -492,7 +492,7 @@ show_version() {
     [ -z "${COMMAND_NAME}" ] && eout "show_version() : La variable gloale COMMAND_NAME n'est pas initialisée"
     [ -z "${VERSION}" ] && eout "show_version() : La variable gloale VERSION n'est pas initialisée"
 
-    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}-------------------------------------------"
+    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}\n-------------------------------------------"
 }
 show_summary() {
     local BOLD='\033[1m'

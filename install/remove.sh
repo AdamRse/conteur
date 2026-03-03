@@ -24,10 +24,7 @@ remove_config_dir(){
 
     CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
 
-    [ ! -d "${CONFIG_DIR}" ] && {
-        fout "Impossible de déterminer le répertoire CONFIG_DIR de l'utilisateur ."
-        return 1
-    }
+    [ ! -d "${CONFIG_DIR}" ] && return 1
 
     if ask_yn "Confirmer la supression de '${CONFIG_DIR}' ?"; then
         rm -rf "${CONFIG_DIR}" && lout "Suppression de '${CONFIG_DIR}' réussie" && return 0
@@ -50,8 +47,10 @@ if [[ -d "${INSTALL_DIR}" ]]; then
     rm -rf "${INSTALL_DIR}"
 fi
 
-lout "Supression du lien symbolique"
-sudo rm "${BIN_LINK}" || fout "Impossible de supprimer le lien symbolique dans '${BIN_LINK}'"
+if [ -f "${BIN_LINK}" ]; then
+    lout "Supression du lien symbolique"
+    sudo rm "${BIN_LINK}" || fout "Impossible de supprimer le lien symbolique dans '${BIN_LINK}'"
+fi
 
 if ask_yn "Supprimer le répertoire de configuration avec les paramètres de l'utilisateur ?"; then
     remove_config_dir

@@ -25,8 +25,8 @@ else
     sleep 1
 fi
 source "${ROOT_DIR}/src/vars.sh" || exit 1
-source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
+source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
 
 # -- CHECKS --
 lout "Vérification des dépendances"
