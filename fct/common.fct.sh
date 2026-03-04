@@ -59,8 +59,8 @@ create_config_dir(){
         local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local template_dir="${lib_dir}/templates"
         local docker_example_path=""
-        local docker_example_template_all="${ROOT_DIR}/config/cmd.docker.all.example"
-        local docker_example_template_specific="${ROOT_DIR}/config/cmd.docker.${project_type}.example"
+        local docker_example_template_all="${ROOT_DIR}/config/examples/cmd.docker.all.example"
+        local docker_example_template_specific="${ROOT_DIR}/config/examples/cmd.docker.${project_type}.example"
         [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
         [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
 
@@ -70,10 +70,12 @@ create_config_dir(){
             cp "${docker_example_path}" "${lib_dir}/cmd.docker.sh" || wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${lib_dir}' a échoué"
         fi
     done
-    {
-        echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
-    } || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
-
+    
+    echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json" || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
+    cat "${ROOT_DIR}/config/examples/.env.example" > "${CONFIG_DIR}/.env.example" || {
+        touch "${CONFIG_DIR}/.env.example"
+        wout "Impossible de trouver l'exemple du .env dans '${CONFIG_DIR}'. Le fichier .env.example a été créé sans modèle."
+    }
     return 0
 }
 
@@ -163,8 +165,8 @@ set_check_globals(){
     # DOCKER COMMAND
     DOCKER_CMD_PATH="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
     local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
-    local example_docker_cmd="${ROOT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
-    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/cmd.docker.all.example"
+    local example_docker_cmd="${ROOT_DIR}/config/examples/cmd.docker.${PROJECT_TYPE}.example"
+    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/examples/cmd.docker.all.example"
 
     if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
         debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
@@ -477,80 +479,4 @@ find_template_from_name() {
         wout "find_template_from_name() : Aucun template trouvé pour '${name}'"
         return 1
     fi
-}
-
-update_conteur(){
-    local update_script_path="${ROOT_DIR}/install/update.sh"
-    [ -z "${ROOT_DIR}" ] && eout "update_conteur() : La variable globale ROOT_DIR doit être initialiser avant l'apel de la fonction."
-    [ ! -f "${update_script_path}" ] && eout "update_conteur() : Le script de mise à jour est introuvable."
-    
-    wout "Feature à venir prochainement, une V1.0 doit être en mode release pour tester cette fonctionnalité"
-    # source "${update_script_path}"
-    exit 0
-}
-show_version() {
-    [ -z "${COMMAND_NAME}" ] && eout "show_version() : La variable gloale COMMAND_NAME n'est pas initialisée"
-    [ -z "${VERSION}" ] && eout "show_version() : La variable gloale VERSION n'est pas initialisée"
-
-    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}\n-------------------------------------------"
-}
-show_summary() {
-    local BOLD='\033[1m'
-    local COLOR_2='\033[0;32m'
-    local COLOR_3='\033[1;33m'
-    local NC='\033[0m'
-    
-    # --- PARAMÈTRES DE TAILLE ---
-    local width=70
-    local label_width=25
-    # ----------------------------
-    
-    print_table_row() {
-        local label=$1
-        local value=$2
-        
-        # Construction de la partie gauche fixe
-        local left_part=$(printf "  %-*s : " "$label_width" "$label")
-        
-        # Calcul du remplissage dynamique pour la bordure droite
-        local used_space=$((${#left_part} + ${#value}))
-        local padding=$((width - used_space))
-        
-        # Sécurité si la valeur est trop longue
-        [[ $padding -lt 0 ]] && padding=0
-
-        printf "${COLOR_2}│${NC}%s${COLOR_2}%s%*s│${NC}\n" "$left_part" "$value" "$padding" ""
-    }
-
-    # Bordure haute
-    echo -e "${COLOR_2}┌$(printf '─%.0s' $(seq 1 $width))┐${NC}"
-    
-    # Titre centré dynamiquement
-    local title="RÉSUMÉ DE LA CONFIGURATION"
-    local title_len=${#title}
-    local title_space=$(( (width - title_len) / 2 ))
-    local title_res=$(( (width - title_len) % 2 )) # Pour gérer les nombres impairs
-    printf "${COLOR_2}│${NC}%*s${BOLD}${COLOR_3}%s${NC}%*s${COLOR_2}│${NC}\n" "$title_space" "" "$title" "$((title_space + title_res))" ""
-    
-    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
-    
-    # Lignes du tableau
-    print_table_row "Nom du projet" "${PROJECT_NAME}"
-    print_table_row "Type d'application" "${PROJECT_TYPE}"
-    print_table_row "Répertoire racine" "${PROJECTS_DIR}"
-
-    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
-    
-    # Chemin complet
-    echo -e "${COLOR_2}│${NC}  ${BOLD}Chemin complet :${NC}$(printf '%*s' $((width - 18)) "")${COLOR_2}│${NC}"
-    
-    local path_display="${PROJECT_PATH}"
-    if [ ${#path_display} -gt $((width - 4)) ]; then
-        path_display="...${path_display: -$((width - 7))}"
-    fi
-    local path_pad=$((width - ${#path_display} - 2))
-    echo -e "${COLOR_2}│${NC}  ${path_display}$(printf '%*s' $path_pad "")${COLOR_2}│${NC}"
-    
-    # Bordure basse
-    echo -e "${COLOR_2}└$(printf '─%.0s' $(seq 1 $width))┘${NC}"
 }

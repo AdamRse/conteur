@@ -114,24 +114,3 @@ show_spinner() {
     done
     printf "\r${message} ${S_PROCESS}✓${S_END}\n" >&2
 }
-
-usage(){
-    echo "Usage: ${COMMAND_NAME} [OPTIONS] [NOM_PROJET]"
-    echo "Le type de projet doit obligatoirement être spécifié en option."
-    echo ""
-    echo "Types de projet disponibles :"
-    echo "    - Laravel (-l, --laravel)"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help            Afficher cette aide"
-    echo "  -l, --laravel         (Obligatoire) Définir le type de projet, comme Laravel"
-    echo "  -P, --path [DIR]      Spécifier le répertoire dans lequel créer le projet"
-    echo "                            Exemple :"
-    echo "                            ${COMMAND_NAME} -lP \"/home/user/projects\" \"my_project\""
-    echo "                            Créera les fichiers du projet dans \"/home/user/projects/my_project\""
-    echo "  -U, --update          Effectuer une mise à jour"
-    echo "  -v, --version         Afficher la version"
-    echo "      --debug           Activer le mode debug, plus verbeux"
-    echo "      --no-confirm      Ignore la demmande de confirmation des paramètres en début de script"
-    exit 0
-}

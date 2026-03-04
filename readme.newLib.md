@@ -96,4 +96,4 @@ Aperçu complet de l'exemple :
 ### Ajouter un exemple pour l'utilisateur
 L'utilisateur peut avoir besoin de personnaliser la commande `cmd.docker.sh`. Pour l'aider, un fichier sera généré dans son dossier de configuration, et vous pouvez en préciser l'utilisation avec des commentaires. Par exemple pour spécifier les variables globales rendues disponibles par votre nouvelle bibliothèque. 
 
-Vous n'avez qu'à créer un fichier `./config/cmd.docker.<nouveau_type>.example`, remplacez `<nouveau_type>` par le nom exact de votre bibliothèque dans le json `config/default.json`. 
+Vous n'avez qu'à créer un fichier `./config/examples/cmd.docker.<nouveau_type>.example`, remplacez `<nouveau_type>` par le nom exact de votre bibliothèque dans le json `config/default.json`. 

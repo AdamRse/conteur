@@ -227,7 +227,7 @@ Conteur recherche les templates dans cet ordre :
 Pour personnaliser la création du projet Docker, créez le fichier :
 `~/.config/conteur/laravel/cmd.docker.sh`
 
-Toutes les variables globales de Conteur y sont disponibles. Consultez `config/cmd.docker.laravel.example` pour un exemple commenté.
+Toutes les variables globales de Conteur y sont disponibles. Consultez `config/examples/cmd.docker.laravel.example` pour un exemple commenté.
 
 ## Dépannage
 
