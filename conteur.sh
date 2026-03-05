@@ -22,6 +22,9 @@ USER_HOME=""
 source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
+source "${ROOT_DIR}/fct/core.fct.sh" || exit 1
+source "${ROOT_DIR}/fct/display.fct.sh" || exit 1
+source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
 if [ -f "${CONFIG_DIR}/.env" ]; then
     source "${CONFIG_DIR}/.env"
     lout "Variables d'environement chargées"
@@ -29,10 +32,7 @@ else
     wout "Aucun fichier d'environement trouvé dans '${CONFIG_DIR}', certaines valeurs seront appliquées par défaut"
     sleep 1
 fi
-source "${ROOT_DIR}/fct/core.fct.sh" || exit 1
-source "${ROOT_DIR}/fct/display.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
-source "${ROOT_DIR}/src/parse_arguments.sh" || exit 1
 
 # -- CHECKS --
 lout "Vérification des dépendances"
