@@ -2,8 +2,8 @@
 check_packages_requirements() {
     local licence_path="${ROOT_DIR}/LICENSE"
 
-    [ -n "${ROOT_DIR}" ] && eout "check_packages_requirements() : La variable globale ROOT_DIR n'est pas initialisée"
-    [ -f "${licence_path}" ] && eout "Utilisation non autorisée"
+    [ -z "${ROOT_DIR}" ] && eout "check_packages_requirements() : La variable globale ROOT_DIR n'est pas initialisée"
+    [ ! -f "${licence_path}" ] && eout "Utilisation non autorisée"
     if ! grep -qF "Adam Rousselle" "${licence_path}" || ! grep -qF "This program is free software" "${licence_path}" || ! grep -qF "www.gnu.org/licenses/gpl-3.0.txt" "${licence_path}"; then
         eout "Svp utilisez la licence :("
     fi
@@ -54,8 +54,9 @@ convert_pseudo_bool(){
 
 # return message+true|exit
 create_config_dir(){
+    [ -z "${ROOT_DIR}" ] && eout "create_config_dir() : La variable globale ROOT_DIR n'est pas initialisée."
     [ -z "${JSON_CONFIG}" ] && eout "create_config_dir() : Le JSON de configuration n'est pas initialisé."
-    [ -z "${CONFIG_DIR}" ] && eout "La variable globale \$CONFIG_DIR n'est pas initialisée."
+    [ -z "${CONFIG_DIR}" ] && eout "create_config_dir() : La variable globale CONFIG_DIR n'est pas initialisée."
     check_json_config_integrity "${JSON_CONFIG}"
 
     lout "Création du répertoire de configuration"
@@ -64,19 +65,17 @@ create_config_dir(){
     [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
 
     for project_type in $project_list; do
-        local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
-        local template_dir="${lib_dir}/templates"
-        local docker_example_path=""
-        local docker_example_template_all="${ROOT_DIR}/config/examples/cmd.docker.all.example"
-        local docker_example_template_specific="${ROOT_DIR}/config/examples/cmd.docker.${project_type}.example"
-        [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
-        [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
+        local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
+        local lib_docker_cmd="${ROOT_DIR}/lib/${project_type}/cmd.docker.sh"
+        local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
+        local template_dir="${config_lib_dir}/templates"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
         ! mkdir -p "${template_dir}" && fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions" && return 1
-        if [ -f "${docker_example_path}" ]; then
-            cp "${docker_example_path}" "${lib_dir}/cmd.docker.sh" || wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${lib_dir}' a échoué"
-        fi
+        ! cp "${lib_docker_cmd}" "${config_docker_cmd}"\
+            && wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."\
+            && wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"\
+            && continue
     done
     
     echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json" || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
@@ -171,18 +170,42 @@ set_check_globals(){
     fi
 
     # DOCKER COMMAND
-    DOCKER_CMD_PATH="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
+    local lib_docker_cmd="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
     local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
-    local example_docker_cmd="${ROOT_DIR}/config/examples/cmd.docker.${PROJECT_TYPE}.example"
-    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/examples/cmd.docker.all.example"
-
-    if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
-        debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
-        if [ ! -f "${example_docker_cmd}" ] || ! diff -q -b -B "${example_docker_cmd}" "${custom_docker_cmd}" > /dev/null; then
+    [[ ! -f $lib_docker_cmd ]] && eout "set_check_globals() : Bibliothèque ${PROJECT_TYPE} mal structurée, fichier de commande docker introuvable dans '${lib_docker_cmd}'"
+    
+    DOCKER_CMD_PATH="${lib_docker_cmd}"
+    if [[ -f $custom_docker_cmd ]]; then
+        if is_code_file "${custom_docker_cmd}"; then
+            lout "Chargement du script utilisateur : ${custom_docker_cmd}"
             DOCKER_CMD_PATH="${custom_docker_cmd}"
-            lout "Script personnalisé de création de projet chargé depuis les fichiers de configuration"
+        else
+            wout "Le script utilisateur est existant mais ignoré. Aucun code n'a été trouvé dans le fichier.\nVérifier le script utilisateur '${custom_docker_cmd}'"
         fi
+    else
+        wout "Chargement du script par défaut de la bibliothèque ${PROJECT_TYPE}, le script utilisateur est introuvable dans '${custom_docker_cmd}'"
     fi
+}
+
+# retourne le contenu d'un fichier débarassé d'espaces et commentaires
+# return text|false
+trim_file(){
+    local file_path="${1}"
+    [[ ! -f $file_path ]] && eout "trim_file() : Le fichier '${file_path}' n'existe pas ou inaccessible" && return 1
+
+    sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "${file_path}"
+}
+
+# détecte si un fichier contient du code bash
+# return true|false
+is_code_file(){
+    local file_path="${1}"
+    [[ ! -f $file_path ]] && eout "is_code_file() : Le fichier '${file_path}' n'existe pas ou inaccessible" && return 1
+
+    if grep -qvE '^[[:space:]]*([#]|$)' "$file_path"; then
+        return 0
+    fi
+    return 1
 }
 
 # return bool
