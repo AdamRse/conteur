@@ -1,5 +1,13 @@
 # return null|string
 check_packages_requirements() {
+    local licence_path="${ROOT_DIR}/LICENSE"
+
+    [ -n "${ROOT_DIR}" ] && eout "check_packages_requirements() : La variable globale ROOT_DIR n'est pas initialisée"
+    [ -f "${licence_path}" ] && eout "Utilisation non autorisée"
+    if ! grep -qF "Adam Rousselle" "${licence_path}" || ! grep -qF "This program is free software" "${licence_path}" || ! grep -qF "www.gnu.org/licenses/gpl-3.0.txt" "${licence_path}"; then
+        eout "Svp utilisez la licence :("
+    fi
+
     if ! command -v docker &> /dev/null; then
         eout "Docker n'est pas installé"
     fi

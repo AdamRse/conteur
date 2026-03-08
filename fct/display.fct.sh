@@ -1,4 +1,5 @@
 usage(){
+    local licence_path="${ROOT_DIR}/LICENSE"
     echo "Usage: ${COMMAND_NAME} [OPTIONS] [NOM_PROJET]"
     echo "Le type de projet doit obligatoirement être spécifié en option."
     echo ""
@@ -16,6 +17,13 @@ usage(){
     echo "  -v, --version         Afficher la version"
     echo "      --debug           Activer le mode debug, plus verbeux"
     echo "      --no-confirm      Ignore la demmande de confirmation des paramètres en début de script"
+
+    if [ -f "${licence_path}" ]; then
+        echo -e "\n-----------------------\n\nLICENSE :\n"
+        [ -f "${licence_path}" ] && cat "${licence_path}"
+        echo ""
+    fi
+    
     exit 0
 }
 
