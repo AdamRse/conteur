@@ -84,7 +84,7 @@ fi
 
 if ask_yn "Créer les fichiers de configuration de l'utilisateur dans '${CONFIG_DIR}' ?"; then
     lout "Création des fichiers de configuration dans '${CONFIG_DIR}'"
-    create_config_dir
+    update_config_dir
     if [ -n "${USER_NAME}" ] && [ -n "${USER_MAIN_GROUP}" ]; then
         sudo chown -R "${USER_NAME}:${USER_MAIN_GROUP}" "${CONFIG_DIR}"
     else

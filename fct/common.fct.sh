@@ -53,10 +53,10 @@ convert_pseudo_bool(){
 }
 
 # return message+true|exit
-create_config_dir(){
-    [ -z "${ROOT_DIR}" ] && eout "create_config_dir() : La variable globale ROOT_DIR n'est pas initialisée."
-    [ -z "${JSON_CONFIG}" ] && eout "create_config_dir() : Le JSON de configuration n'est pas initialisé."
-    [ -z "${CONFIG_DIR}" ] && eout "create_config_dir() : La variable globale CONFIG_DIR n'est pas initialisée."
+update_config_dir(){
+    [ -z "${ROOT_DIR}" ] && eout "update_config_dir() : La variable globale ROOT_DIR n'est pas initialisée."
+    [ -z "${JSON_CONFIG}" ] && eout "update_config_dir() : Le JSON de configuration n'est pas initialisé."
+    [ -z "${CONFIG_DIR}" ] && eout "update_config_dir() : La variable globale CONFIG_DIR n'est pas initialisée."
     check_json_config_integrity "${JSON_CONFIG}"
 
     lout "Création du répertoire de configuration"
@@ -71,18 +71,30 @@ create_config_dir(){
         local template_dir="${config_lib_dir}/templates"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
-        ! mkdir -p "${template_dir}" && fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions" && return 1
-        ! cp "${lib_docker_cmd}" "${config_docker_cmd}"\
-            && wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."\
-            && wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"\
-            && continue
+        if ! mkdir -p "${template_dir}"; then
+            fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions"
+            return 1
+        fi
+        if [[ ! -f $config_docker_cmd ]]; then
+            debug_ "Copie du script de commande docker pour ${project_type}"
+            ! cp "${lib_docker_cmd}" "${config_docker_cmd}"\
+                && wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."\
+                && wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"\
+                && continue
+        fi
     done
-    
-    echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json" || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
+
+    local config_dir_json="${CONFIG_DIR}/config.json"
+    if [[ ! -f $config_dir_json ]]; then
+        debug_ "Création du json de configuration"
+        echo "${JSON_CONFIG}" > "${config_dir_json}" || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${config_dir_json}'"
+    fi
+
     cat "${ROOT_DIR}/config/examples/.env.example" > "${CONFIG_DIR}/.env.example" || {
         touch "${CONFIG_DIR}/.env.example"
         wout "Impossible de trouver l'exemple du .env dans '${CONFIG_DIR}'. Le fichier .env.example a été créé sans modèle."
     }
+
     return 0
 }
 
@@ -149,7 +161,7 @@ set_check_globals(){
     # CONFIG_DIR
     if [ ! -d "${CONFIG_DIR}" ]; then
         if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
-            create_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
+            update_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
         else
             wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${ROOT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
             wout "Sans répertoire de configuration, ${COMMAND_NAME} ne fonctionnera qu'avec les templates et valeurs par défaut."
@@ -169,11 +181,11 @@ set_check_globals(){
         CUSTOM_TEMPLATE_DIR=""
     fi
 
-    # DOCKER COMMAND
+    # DOCKER_CMD_PATH
     local lib_docker_cmd="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
     local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
     [[ ! -f $lib_docker_cmd ]] && eout "set_check_globals() : Bibliothèque ${PROJECT_TYPE} mal structurée, fichier de commande docker introuvable dans '${lib_docker_cmd}'"
-    
+
     DOCKER_CMD_PATH="${lib_docker_cmd}"
     if [[ -f $custom_docker_cmd ]]; then
         if is_code_file "${custom_docker_cmd}"; then

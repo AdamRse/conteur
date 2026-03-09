@@ -13,6 +13,7 @@ USER_HOME=""
 INSTALL_DIR=""
 BIN_LINK=""
 CONFIG_DIR=""
+OLD_VERSON=""
 
 source "${ROOT_DIR}/src/vars.sh" || {
     echo "Erreur, architecture non reconnue : '${ROOT_DIR}/src/vars.sh' non trouvé"
@@ -23,6 +24,17 @@ source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || {
     exit 1
 }
 source "${ROOT_DIR}/fct/core.fct.sh" || eout "Erreur, architecture non reconnue : '${ROOT_DIR}/fct/core.fct.sh' non trouvé"
+
+# ---
+recover_last_version(){
+    lout "Récupération du backup :S"
+    sudo rm -rf "${INSTALL_DIR}"
+    sudo mv "${BACKUP_DIR}" "${INSTALL_DIR}" || {
+        sudo rm "${BIN_LINK}"
+        eout "Impossible de récupérer le backup dans '${BACKUP_DIR}', il faut réinstaller ${COMMAND_NAME}."
+    }
+}
+# ---
 
 if [ -f "${CONFIG_DIR}/.env" ]; then
     source "${CONFIG_DIR}/.env"
@@ -67,15 +79,33 @@ sudo mkdir -p "${INSTALL_DIR}"
 lout "décompression de l'archive"
 sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" --strip-components=1 || {
     fout "Impossible de décompresser l'archive, elle n'est peut être pas au format .tar.gz, ou peut-être corrompue."
-    lout "Récupération du backup :S"
-
-    sudo rm -rf "${INSTALL_DIR}"
-    sudo mv "${BACKUP_DIR}" "${INSTALL_DIR}" || {
-        sudo rm "${BIN_LINK}"
-        eout "Impossible de récupérer le backup dans '${BACKUP_DIR}', il faut réinstaller ${COMMAND_NAME}."
-    }
+    recover_last_version
     eout "La mise a jour a échoué."
 }
 
-rm -rf "${BACKUP_DIR}" "${TEMP_DIR}" "${TEMP_DIR_ARCHIVE}"
-sout "Mise a jour v${VERSION} > v${LATEST_VERSION} terminée avec succès !"
+# Mise a jour de l'architecture effectuée, recgargement des nouveaux fichiers et mise à jour des fichiers de config (en cas de nouvelle lib)
+OLD_VERSON="${VERSION}"
+source "${ROOT_DIR}/src/vars.sh" || {
+    fout "Erreur, architecture non reconnue : '${ROOT_DIR}/src/vars.sh' non trouvé.\nLa mise a jour semble avoir échouée, Impossible de mettre à jour le répertoire de config..."
+    fout "Récupération de l'ancienne version par sécurité"
+    recover_last_version
+    eout "La mise a jour a échoué."
+}
+source "${ROOT_DIR}/src/common.sh" || {
+    fout "Erreur, architecture non reconnue : '${ROOT_DIR}/src/common.sh' non trouvé.\nLa mise a jour semble avoir échouée, Impossible de mettre à jour le répertoire de config..."
+    fout "Récupération de l'ancienne version par sécurité"
+    recover_last_version
+    eout "La mise a jour a échoué."
+}
+lout "Export des configurations"
+export_json_config
+
+lout "Mise à jour des fichiers de configuration de l'utilisateur"
+update_config_dir
+
+lout "Supression du backup"
+[[ -n "${BACKUP_DIR}" ]] && [[ "${BACKUP_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${BACKUP_DIR}"
+[[ -n "${TEMP_DIR}" ]] && [[ "${TEMP_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR}"
+[[ -n "${TEMP_DIR_ARCHIVE}" ]] && [[ "${TEMP_DIR_ARCHIVE}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR_ARCHIVE}"
+
+sout "Mise a jour v${OLD_VERSON} > v${LATEST_VERSION} terminée avec succès !"
