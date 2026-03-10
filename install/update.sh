@@ -13,7 +13,7 @@ USER_HOME=""
 INSTALL_DIR=""
 BIN_LINK=""
 CONFIG_DIR=""
-OLD_VERSON=""
+OLD_VERSION=""
 
 source "${ROOT_DIR}/src/vars.sh" || {
     echo "Erreur, architecture non reconnue : '${ROOT_DIR}/src/vars.sh' non trouvé"
@@ -28,7 +28,7 @@ source "${ROOT_DIR}/fct/core.fct.sh" || eout "Erreur, architecture non reconnue 
 # ---
 recover_last_version(){
     lout "Récupération du backup :S"
-    sudo rm -rf "${INSTALL_DIR}"
+    [[ -n "${INSTALL_DIR}" ]] && [[ "${INSTALL_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${INSTALL_DIR}"
     sudo mv "${BACKUP_DIR}" "${INSTALL_DIR}" || {
         sudo rm "${BIN_LINK}"
         eout "Impossible de récupérer le backup dans '${BACKUP_DIR}', il faut réinstaller ${COMMAND_NAME}."
@@ -82,9 +82,12 @@ sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" --strip-components=1 || 
     recover_last_version
     eout "La mise a jour a échoué."
 }
+sudo find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
+sudo find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
+sudo chmod 755 "${INSTALL_DIR}/conteur.sh"
 
 # Mise a jour de l'architecture effectuée, recgargement des nouveaux fichiers et mise à jour des fichiers de config (en cas de nouvelle lib)
-OLD_VERSON="${VERSION}"
+OLD_VERSION="${VERSION}"
 source "${ROOT_DIR}/src/vars.sh" || {
     fout "Erreur, architecture non reconnue : '${ROOT_DIR}/src/vars.sh' non trouvé.\nLa mise a jour semble avoir échouée, Impossible de mettre à jour le répertoire de config..."
     fout "Récupération de l'ancienne version par sécurité"
@@ -108,4 +111,4 @@ lout "Supression du backup"
 [[ -n "${TEMP_DIR}" ]] && [[ "${TEMP_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR}"
 [[ -n "${TEMP_DIR_ARCHIVE}" ]] && [[ "${TEMP_DIR_ARCHIVE}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR_ARCHIVE}"
 
-sout "Mise a jour v${OLD_VERSON} > v${LATEST_VERSION} terminée avec succès !"
+sout "Mise a jour v${OLD_VERSION} > v${LATEST_VERSION} terminée avec succès !"
