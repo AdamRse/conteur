@@ -82,9 +82,19 @@ sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" --strip-components=1 || 
     recover_last_version
     eout "La mise a jour a échoué."
 }
-sudo find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
-sudo find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
-sudo chmod 755 "${INSTALL_DIR}/conteur.sh"
+lout "Configuration des permissions..."
+if ! set_permissions; then
+    fout "Impossible de paramétrer les permission de base, attention ${COMMAND_NAME} ne sera pas executable !!!"
+    # fout "---------"
+    # fout "Veillez paramétrer manuellement les permissions :"
+    # fout "- répertoires ${INSTALL_DIR} : execution"
+    # fout "- fichiers ${INSTALL_DIR} : lecture"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates : lecture+execution"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates/deprecated : lecture+execution"
+    # fout "- ${INSTALL_DIR}/${COMMAND_NAME}.sh : lecture+execution"
+    # fout "---------"
+    sleep 2
+fi
 
 # Mise a jour de l'architecture effectuée, recgargement des nouveaux fichiers et mise à jour des fichiers de config (en cas de nouvelle lib)
 OLD_VERSION="${VERSION}"

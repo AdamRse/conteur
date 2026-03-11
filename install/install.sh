@@ -18,6 +18,7 @@ USER_HOME=""
 source "${ROOT_DIR}/src/vars.sh" || exit 1
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
+source "${ROOT_DIR}/fct/core.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 # -- CONDITIONS
@@ -63,9 +64,18 @@ sudo rsync -r --exclude="{
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
-find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
-find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
-chmod +x "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${INSTALL_DIR}/install/update.sh"
+if ! set_permissions; then
+    fout "Impossible de paramétrer les permission de base, attention ${COMMAND_NAME} ne sera pas executable !!!"
+    # fout "---------"
+    # fout "Veillez paramétrer manuellement les permissions :"
+    # fout "- répertoires ${INSTALL_DIR} : execution"
+    # fout "- fichiers ${INSTALL_DIR} : lecture"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates : lecture+execution"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates/deprecated : lecture+execution"
+    # fout "- ${INSTALL_DIR}/${COMMAND_NAME}.sh : lecture+execution"
+    # fout "---------"
+    sleep 2
+fi
 
 lout "Création du lien symbolique dans /usr/local/bin..."
 if [[ -L "${BIN_LINK}" ]]; then

@@ -65,16 +65,23 @@ update_config_dir(){
     [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
 
     for project_type in $project_list; do
+        local lib_dir="${ROOT_DIR}/lib/${project_type}"
+        local lib_docker_cmd="${lib_dir}/cmd.docker.sh"
         local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
-        local lib_docker_cmd="${ROOT_DIR}/lib/${project_type}/cmd.docker.sh"
         local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
-        local template_dir="${config_lib_dir}/templates"
+        local config_template_dir="${config_lib_dir}/templates"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
-        if ! mkdir -p "${template_dir}"; then
-            fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions"
+        if ! mkdir -p "${config_template_dir}"; then
+            fout "Impossible de créer le répertoire de config '${config_template_dir}', vérifier les permissions"
             return 1
         fi
+        debug_ "Copie des templates pour ${project_type}"
+        # supprimer les templates deprecated ici
+        if ! cp -n "${lib_dir}/templates/"* "${config_template_dir}/"; then
+            wout "Les templates n'ont pas pu être créés"
+        fi
+
         if [[ ! -f $config_docker_cmd ]]; then
             debug_ "Copie du script de commande docker pour ${project_type}"
             ! cp "${lib_docker_cmd}" "${config_docker_cmd}"\
