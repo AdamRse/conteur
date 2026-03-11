@@ -14,6 +14,9 @@ check_packages_requirements() {
     if ! command -v curl &> /dev/null; then
         eout "curl n'est pas installé"
     fi
+    if ! command -v rsync &> /dev/null; then
+        eout "rsync n'est pas installé. Installez-le avec: sudo apt install rsync"
+    fi
     if ! command -v jq &> /dev/null; then
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
     fi
@@ -70,6 +73,7 @@ update_config_dir(){
         local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
         local config_template_dir="${config_lib_dir}/templates"
+        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\t-------------"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
         if ! mkdir -p "${config_template_dir}"; then
@@ -77,8 +81,10 @@ update_config_dir(){
             return 1
         fi
         debug_ "Copie des templates pour ${project_type}"
+
         # supprimer les templates deprecated ici
-        if ! cp -n "${lib_dir}/templates/"* "${config_template_dir}/"; then
+
+        if ! rsync -q --ignore-existing --no-dirs "${lib_dir}/templates/"* "${config_template_dir}/"; then
             wout "Les templates n'ont pas pu être créés"
         fi
 
