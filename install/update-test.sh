@@ -65,7 +65,7 @@ UUID=$(cat /proc/sys/kernel/random/uuid)
 TEMP_DIR="/tmp/conteur-${UUID}"
 TEMP_DIR_ARCHIVE="${TEMP_DIR}.tar.gz"
 BACKUP_DIR="/tmp/conteur-backup-${UUID}"
-debug_ "-- Résumée --\n\tTEMP_DIR : ${TEMP_DIR}\n\tTEMP_DIR_ARCHIVE : ${TEMP_DIR_ARCHIVE}\n\tBACKUP_DIR : ${BACKUP_DIR}"
+debug_ "-- Résumée --\n\tROOT_DIR : ${ROOT_DIR}\n\tTEMP_DIR : ${TEMP_DIR}\n\tTEMP_DIR_ARCHIVE : ${TEMP_DIR_ARCHIVE}\n\tBACKUP_DIR : ${BACKUP_DIR}\n\tINSTALL_DIR : ${INSTALL_DIR}"
 
 
 [[ ! "${INSTALL_DIR}" =~ ${COMMAND_NAME}/?$ ]] && eout "Attention, par sécurité le programme a été arrêté pour ne pas supprimer un mauvais répertoire. Le répertoire d'installation '${INSTALL_DIR}' devrait terminer par ${COMMAND_NAME}" && exit 1
@@ -81,11 +81,12 @@ sudo mv "${INSTALL_DIR}" "${BACKUP_DIR}"
 sudo mkdir -p "${INSTALL_DIR}"
 
 lout "décompression de l'archive"
-sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" --strip-components=1 || {
+sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" || {
     fout "Impossible de décompresser l'archive, elle n'est peut être pas au format .tar.gz, ou peut-être corrompue."
     recover_last_version
     eout "La mise a jour a échoué."
 }
+
 lout "Configuration des permissions..."
 if ! set_permissions; then
     fout "Impossible de paramétrer les permission de base, attention ${COMMAND_NAME} ne sera pas executable !!!"
@@ -108,8 +109,8 @@ source "${ROOT_DIR}/src/vars.sh" || {
     recover_last_version
     eout "La mise a jour a échoué."
 }
-source "${ROOT_DIR}/src/common.sh" || {
-    fout "Erreur, architecture non reconnue : '${ROOT_DIR}/src/common.sh' non trouvé.\nLa mise a jour semble avoir échouée, Impossible de mettre à jour le répertoire de config..."
+source "${ROOT_DIR}/fct/common.fct.sh" || {
+    fout "Erreur, architecture non reconnue : '${ROOT_DIR}/fct/common.fct.sh' non trouvé.\nLa mise a jour semble avoir échouée, Impossible de mettre à jour le répertoire de config..."
     fout "Récupération de l'ancienne version par sécurité"
     recover_last_version
     eout "La mise a jour a échoué."
