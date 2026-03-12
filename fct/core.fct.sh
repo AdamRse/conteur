@@ -15,6 +15,6 @@ set_permissions(){
 
     sudo find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
     sudo find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
-    sudo find "${INSTALL_DIR}/lib" -type d \( -name "templates" -o -name "deprecated" \) -exec chmod 755 {} +
+    sudo find "${INSTALL_DIR}" -type d \( -name "templates" -o -name "deprecated" -o -name "lib" \) -exec chmod 755 {} +
     sudo chmod 755 "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${INSTALL_DIR}/install/update.sh"
 }

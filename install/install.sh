@@ -11,7 +11,7 @@ VERSION=""
 CONFIG_DIR=""
 INSTALL_DIR=""
 BIN_LINK=""
-DEBUG_MODE=false
+DEBUG_MODE=true
 USER_NAME=""
 USER_MAIN_GROUP=""
 USER_HOME=""
@@ -51,16 +51,21 @@ if [[ -d "${INSTALL_DIR}" ]]; then
     [[ -f "${INSTALL_DIR}/.env" ]] && env_tmp_path="/tmp/${COMMAND_NAME}.env_$(cat /proc/sys/kernel/random/uuid)" && cp "${INSTALL_DIR}/.env" "${env_tmp_path}"
     rm -rf "${INSTALL_DIR}"
 fi
-mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
-[[ -f "${env_tmp_path}" ]] && mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
+debug_ "Création de ${INSTALL_DIR} pour copier les fichiers"
+sudo mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
+[[ -f "${env_tmp_path}" ]] && sudo mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
+
+debug_ "Copie de l'architecture ${INSTALL_DIR} pour copier les fichiers"
 lout "Synchronisation des fichiers..."
+
 sudo rsync -r --exclude="{
     '.git',
     '.gitignore',
     'install/install.sh',
     'install/dev.install.sh'
-    }" "${ROOT_DIR}/." "${INSTALL_DIR}/"
+    }" "${ROOT_DIR}/"* "${INSTALL_DIR}/"
+
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."

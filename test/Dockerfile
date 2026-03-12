@@ -23,7 +23,8 @@ WORKDIR /home/devuser/conteur_src
 
 COPY . .
 
-RUN chown -R devuser:devuser /home/devuser/conteur_src
+RUN chown -R devuser:devuser /home/devuser/conteur_src &&\
+    chmod +x install/install.sh install/update-test.sh
 
 USER devuser
 

@@ -5,9 +5,11 @@
 UPDATE_SCRIPT_PATH="$(readlink -f "$0")"
 ROOT_DIR="$(dirname "$(dirname "$UPDATE_SCRIPT_PATH")")"
 
+NOM_ARCHIVE_UPDATE="conteur.tar.gz"
+
 VERSION=""
 COMMAND_NAME=""
-DEBUG_MODE=false
+DEBUG_MODE=true
 USER_NAME=""
 USER_MAIN_GROUP=""
 USER_HOME=""
@@ -47,10 +49,10 @@ fi
 
 lout "Récupération de la version à jour"
 
-REPO_URL="https://github.com/AdamRse/conteur/releases/latest"
-GITHUB_HEADER=$(curl -sI "${REPO_URL}")
-LATEST_VERSION_TAG=$(grep -i "location:" <<< "${GITHUB_HEADER}" | awk -F'/' '{print $NF}'| tr -d '\r')
-LATEST_VERSION=$(tr -cd '0-9.' <<< "$LATEST_VERSION_TAG")
+REPO_URL="local latest"
+GITHUB_HEADER="header v 2.0"
+LATEST_VERSION_TAG="v2.0"
+LATEST_VERSION="2.0"
 
 [ -z "${LATEST_VERSION}" ] && eout "Impossible de récupérer la dernière version sur github.\n\turl : ${REPO_URL}\n\t--------------------------\nHEADER REÇU\n--------------------------\n${GITHUB_HEADER}"
 [[ ! "${LATEST_VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]] && eout "La version récupérée ($LATEST_VERSION}) n'est pas un numéro de version valide. La realease n'a peut-être pas le bon label."
@@ -58,20 +60,21 @@ LATEST_VERSION=$(tr -cd '0-9.' <<< "$LATEST_VERSION_TAG")
 lout "Latest : v${LATEST_VERSION}\n\tLocale : v${VERSION}"
 [[ "${LATEST_VERSION}" = "${VERSION}" ]] && { lout "La version locale est à jour."; exit 0; }
 
-DOWNLOAD_URL="https://github.com/AdamRse/conteur/releases/download/${LATEST_VERSION_TAG}/conteur.tar.gz"
 UUID=$(cat /proc/sys/kernel/random/uuid)
 
 TEMP_DIR="/tmp/conteur-${UUID}"
 TEMP_DIR_ARCHIVE="${TEMP_DIR}.tar.gz"
 BACKUP_DIR="/tmp/conteur-backup-${UUID}"
-debug_ "-- Résumée --\n\tDOWNLOAD_URL : ${DOWNLOAD_URL}\n\tTEMP_DIR : ${TEMP_DIR}\n\tTEMP_DIR_ARCHIVE : ${TEMP_DIR_ARCHIVE}\n\tBACKUP_DIR : ${BACKUP_DIR}"
+debug_ "-- Résumée --\n\tTEMP_DIR : ${TEMP_DIR}\n\tTEMP_DIR_ARCHIVE : ${TEMP_DIR_ARCHIVE}\n\tBACKUP_DIR : ${BACKUP_DIR}"
+
 
 [[ ! "${INSTALL_DIR}" =~ ${COMMAND_NAME}/?$ ]] && eout "Attention, par sécurité le programme a été arrêté pour ne pas supprimer un mauvais répertoire. Le répertoire d'installation '${INSTALL_DIR}' devrait terminer par ${COMMAND_NAME}" && exit 1
 
 lout "Lancement de la mise à jour vers ${LATEST_VERSION_TAG}"
 
-lout "Téléchargement de l'archive"
-curl -L "${DOWNLOAD_URL}" -o "${TEMP_DIR_ARCHIVE}" || eout "Le téléchargement de l'archive a échoué"
+lout "Copie de l'archive"
+#curl -L "${DOWNLOAD_URL}" -o "${TEMP_DIR_ARCHIVE}" || eout "Le téléchargement de l'archive a échoué"
+sudo cp "$ROOT_DIR/install/$NOM_ARCHIVE_UPDATE" "${TEMP_DIR_ARCHIVE}"
 
 lout "Backup de l'ancienne version"
 sudo mv "${INSTALL_DIR}" "${BACKUP_DIR}"
