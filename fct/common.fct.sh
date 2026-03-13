@@ -73,17 +73,25 @@ update_config_dir(){
         local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
         local config_template_dir="${config_lib_dir}/templates"
-        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\t-------------"
+        local config_deprecated_template_dir="${config_template_dir}/deprecated"
+        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\tconfig_deprecated_template_dir : ${config_deprecated_template_dir}\n\t-------------"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
         if ! mkdir -p "${config_template_dir}"; then
             fout "Impossible de créer le répertoire de config '${config_template_dir}', vérifier les permissions"
             return 1
         fi
+
+        # --- delete deprecated templates --- A coder
+        debug_ "Nettoyage des demplates obsolètes pour ${project_type}"
+        for deprecated_template_name in "${config_deprecated_template_dir}/"*; do
+            if [ -f "${deprecated_template_name}" ]; then
+                config_deprecated_template_name=$( [[ -f "$deprecated_template_name" ]] && echo "$deprecated_template_name" || { [[ -f "$deprecated_template_name.template" ]] && echo "$deprecated_template_name.template"; } )
+            fi
+        done
+        # ---
+
         debug_ "Copie des templates pour ${project_type}"
-
-        # supprimer les templates deprecated ici
-
         if ! rsync -q --ignore-existing --no-dirs "${lib_dir}/templates/"* "${config_template_dir}/"; then
             wout "Les templates n'ont pas pu être créés"
         fi
