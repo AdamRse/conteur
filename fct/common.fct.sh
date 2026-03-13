@@ -82,13 +82,47 @@ update_config_dir(){
             return 1
         fi
 
-        # --- delete deprecated templates --- A coder
+        # --- delete deprecated templates ---
         debug_ "Nettoyage des demplates obsolètes pour ${project_type}"
         for deprecated_template_name in "${config_deprecated_template_dir}/"*; do
             if [ -f "${deprecated_template_name}" ]; then
-                config_deprecated_template_name=$( [[ -f "$deprecated_template_name" ]] && echo "$deprecated_template_name" || { [[ -f "$deprecated_template_name.template" ]] && echo "$deprecated_template_name.template"; } )
+                local config_deprecated_template_name="${deprecated_template_name}"
+                [[ ! -f "${config_deprecated_template_path}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name%.template}"
+                [[ ! -f "${config_deprecated_template_path}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name}.template"
+                [[ ! -f "${config_deprecated_template_path}/${config_deprecated_template_name}" ]] && continue
+
+                debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
+                local config_deprecated_template_path="${config_deprecated_template_path}/${config_deprecated_template_name}"
+                #compare trim_file "${config_deprecated_template_path}"
+                if diff -q -w -B "${config_deprecated_template_path}" "${config_deprecated_template_dir}/${deprecated_template_name}" > /dev/null; then
+                    local lib_template_path="${lib_dir}/templates/${deprecated_template_name}"
+                    [[ ! -f "${lib_template_path}" ]] && {
+                        fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
+                        continue
+                    }
+                    lout "Template obsolète détecté dans ${config_deprecated_template_path}, mise à jour du template"
+                    # rm "${config_deprecated_template_path}" || {
+                    #     fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
+                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
+                    #     continue
+                    # }
+                    cp "${lib_template_path}" "${config_deprecated_template_path}" || {
+                        fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
+                        fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
+                        continue
+                    }
+
+                else
+                    debug_ "Template ${config_deprecated_template_name} n'est pas obsolète, son contenu diffère"
+                    continue
+                fi
+
             fi
         done
+
+        # A CODER
+        # --- delete deprecated cmd ---
+        
         # ---
 
         debug_ "Copie des templates pour ${project_type}"
@@ -221,6 +255,7 @@ set_check_globals(){
 }
 
 # retourne le contenu d'un fichier débarassé d'espaces et commentaires
+# $1    : file_path : Chemin absolu du fichier
 # return text|false
 trim_file(){
     local file_path="${1}"
