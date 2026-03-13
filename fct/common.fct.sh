@@ -88,11 +88,15 @@ update_config_dir(){
         # FONCTION A TESTER
         debug_ "Nettoyage des templates obsolètes pour ${project_type}"
         for deprecated_template_name in "${lib_deprecated_template_dir}/"*; do
+            debug_ "test du template ${deprecated_template_name}"
             if [ -f "${deprecated_template_name}" ]; then
                 local config_deprecated_template_name="${deprecated_template_name}"
                 [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name%.template}"
                 [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name}.template"
-                [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && continue
+                [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && {
+                    debug_ "Template ${deprecated_template_name} introuvable dans les fichiers de config de l'utilisateur"
+                    continue
+                }
 
                 debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
                 local config_deprecated_template_path="${config_template_dir}/${config_deprecated_template_name}"
