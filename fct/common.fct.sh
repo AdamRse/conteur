@@ -87,36 +87,35 @@ update_config_dir(){
         # --- delete deprecated templates ---
         # FONCTION A TESTER
         debug_ "Nettoyage des templates obsolètes pour ${project_type}"
-        for deprecated_template_name in "${lib_deprecated_template_dir}/"*; do
-            debug_ "test du template ${deprecated_template_name}"
-            if [ -f "${deprecated_template_name}" ]; then
+        for lib_deprecated_template_path in "${lib_deprecated_template_dir}/"*; do
+            local deprecated_template_name="$(basename "${lib_deprecated_template_path}")"
+            if [ -f "${lib_deprecated_template_path}" ]; then
                 local config_deprecated_template_name="${deprecated_template_name}"
+                local lib_template_path="${lib_template_dir}/${deprecated_template_name}"
+                [[ ! -f "${lib_template_path}" ]] && {
+                    fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
+                    continue
+                }
                 [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name%.template}"
                 [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name}.template"
                 [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && {
                     debug_ "Template ${deprecated_template_name} introuvable dans les fichiers de config de l'utilisateur"
                     continue
                 }
+                local config_template_path="${config_template_dir}/${config_deprecated_template_name}"
 
-                debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
-                local config_deprecated_template_path="${config_template_dir}/${config_deprecated_template_name}"
-                if diff -w -B "${config_deprecated_template_path}" "${lib_deprecated_template_dir}/${deprecated_template_name}"; then
-                    local lib_template_path="${lib_template_dir}/${deprecated_template_name}"
-                    [[ ! -f "${lib_template_path}" ]] && {
-                        fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
-                        continue
-                    }
-                    lout "Template obsolète détecté dans ${config_deprecated_template_path}, mise à jour du template"
-                    rm "${config_deprecated_template_path}" || {
-                        fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
-                        fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
+                if diff -w -B "${config_template_path}" "${lib_deprecated_template_path}"; then
+                    lout "Template obsolète détecté dans ${config_template_path}, mise à jour du template"
+                    rm "${config_template_path}" || {
+                        fout "Impossible de supprimer le template ${$config_template_path}"
+                        fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_template_path}"
                         continue
                     }
                     # Note : la copie de tous les templates se fait après la boucle, pas besoin de la faire ici
                     #
-                    # cp "${lib_template_path}" "${config_deprecated_template_path}" || {
-                    #     fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
-                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
+                    # cp "${lib_template_path}" "${config_template_path}" || {
+                    #     fout "Impossible de supprimer le template ${$config_template_path}"
+                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_template_path}"
                     #     continue
                     # }
 
