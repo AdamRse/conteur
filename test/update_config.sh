@@ -24,7 +24,7 @@ check_packages_requirements
 lout "Export du json de configuration"
 export_json_config
 
-LOUT "Changement des fichiers template et commandes de laravel pour simuler une mise à jour"
+lout "Changement des fichiers template et commandes de laravel pour simuler une mise à jour"
 cp "${ROOT_DIR}/lib/laravel/templates/Dockerfile.template" "${ROOT_DIR}/lib/laravel/templates/deprecated/"
 echo "NEW DOCKERFILE" > "${ROOT_DIR}/lib/laravel/templates/Dockerfile.template"
 cp "${ROOT_DIR}/lib/laravel/templates/nginx.conf.template" "${ROOT_DIR}/lib/laravel/templates/deprecated/"

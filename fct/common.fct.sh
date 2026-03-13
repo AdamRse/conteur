@@ -73,8 +73,8 @@ update_config_dir(){
         local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
         local config_template_dir="${config_lib_dir}/templates"
-        local config_deprecated_template_dir="${config_template_dir}/deprecated"
-        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\tconfig_deprecated_template_dir : ${config_deprecated_template_dir}\n\t-------------"
+        local lib_deprecated_template_dir="${config_template_dir}/deprecated"
+        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\tlib_deprecated_template_dir : ${lib_deprecated_template_dir}\n\t-------------"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
         if ! mkdir -p "${config_template_dir}"; then
@@ -86,7 +86,7 @@ update_config_dir(){
         # --- delete deprecated templates ---
         # FONCTION A TESTER
         debug_ "Nettoyage des templates obsolètes pour ${project_type}"
-        for deprecated_template_name in "${config_deprecated_template_dir}/"*; do
+        for deprecated_template_name in "${lib_deprecated_template_dir}/"*; do
             if [ -f "${deprecated_template_name}" ]; then
                 local config_deprecated_template_name="${deprecated_template_name}"
                 [[ ! -f "${config_deprecated_template_path}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name%.template}"
@@ -95,8 +95,7 @@ update_config_dir(){
 
                 debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
                 local config_deprecated_template_path="${config_deprecated_template_path}/${config_deprecated_template_name}"
-                #compare trim_file "${config_deprecated_template_path}"
-                if diff -w -B "${config_deprecated_template_path}" "${config_deprecated_template_dir}/${deprecated_template_name}"; then
+                if diff -w -B "${config_deprecated_template_path}" "${lib_deprecated_template_dir}/${deprecated_template_name}"; then
                     local lib_template_path="${lib_dir}/templates/${deprecated_template_name}"
                     [[ ! -f "${lib_template_path}" ]] && {
                         fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
@@ -120,7 +119,8 @@ update_config_dir(){
                     debug_ "Template ${config_deprecated_template_name} n'est pas obsolète, son contenu diffère"
                     continue
                 fi
-
+            else
+                debug_ "Le fichier ${deprecated_template_name} n'existe pas"
             fi
         done
 
@@ -143,7 +143,7 @@ update_config_dir(){
             local lib_deprecated_docker_cmd="${lib_dir}/deprecated.cmd.docker.sh"
             if [[ -f "${lib_deprecated_docker_cmd}" ]]; then
                 debug_ "Test du contenu de ${config_docker_cmd}"
-                if ! diff -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}"); then
+                if diff -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}"); then
                     debug_ "Script obsolète, remplacement..."
                     cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
                         fout "Impossible de remplacer le script de configuration : ${lib_docker_cmd} > ${config_docker_cmd}"
