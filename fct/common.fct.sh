@@ -73,7 +73,8 @@ update_config_dir(){
         local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
         local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
         local config_template_dir="${config_lib_dir}/templates"
-        local lib_deprecated_template_dir="${config_template_dir}/deprecated"
+        local lib_template_dir="${lib_dir}/templates"
+        local lib_deprecated_template_dir="${lib_template_dir}/deprecated"
         debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\tlib_deprecated_template_dir : ${lib_deprecated_template_dir}\n\t-------------"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
@@ -96,7 +97,7 @@ update_config_dir(){
                 debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
                 local config_deprecated_template_path="${config_deprecated_template_path}/${config_deprecated_template_name}"
                 if diff -w -B "${config_deprecated_template_path}" "${lib_deprecated_template_dir}/${deprecated_template_name}"; then
-                    local lib_template_path="${lib_dir}/templates/${deprecated_template_name}"
+                    local lib_template_path="${lib_template_dir}/${deprecated_template_name}"
                     [[ ! -f "${lib_template_path}" ]] && {
                         fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
                         continue
@@ -125,7 +126,7 @@ update_config_dir(){
         done
 
         debug_ "Copie des templates pour ${project_type}"
-        if ! rsync -q --ignore-existing --no-dirs "${lib_dir}/templates/"* "${config_template_dir}/"; then
+        if ! rsync -q --ignore-existing --no-dirs "${lib_template_dir}/"* "${config_template_dir}/"; then
             wout "Les templates n'ont pas pu être créés"
         fi
 
