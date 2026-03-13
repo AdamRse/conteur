@@ -104,7 +104,7 @@ update_config_dir(){
                 }
                 local config_template_path="${config_template_dir}/${config_deprecated_template_name}"
 
-                if diff -w -B "${config_template_path}" "${lib_deprecated_template_path}"; then
+                if diff -q -w -B "${config_template_path}" "${lib_deprecated_template_path}" >/dev/null; then
                     lout "Template obsolète détecté dans ${config_template_path}, mise à jour du template"
                     rm "${config_template_path}" || {
                         fout "Impossible de supprimer le template ${$config_template_path}"
@@ -147,7 +147,7 @@ update_config_dir(){
             local lib_deprecated_docker_cmd="${lib_dir}/deprecated.cmd.docker.sh"
             if [[ -f "${lib_deprecated_docker_cmd}" ]]; then
                 debug_ "Test du contenu de ${config_docker_cmd}"
-                if diff -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}"); then
+                if diff -q -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}") >/dev/null; then
                     debug_ "Script obsolète, remplacement..."
                     cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
                         fout "Impossible de remplacer le script de configuration : ${lib_docker_cmd} > ${config_docker_cmd}"
