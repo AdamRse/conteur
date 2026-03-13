@@ -81,9 +81,11 @@ update_config_dir(){
             fout "Impossible de créer le répertoire de config '${config_template_dir}', vérifier les permissions"
             return 1
         fi
+        
 
         # --- delete deprecated templates ---
-        debug_ "Nettoyage des demplates obsolètes pour ${project_type}"
+        # FONCTION A TESTER
+        debug_ "Nettoyage des templates obsolètes pour ${project_type}"
         for deprecated_template_name in "${config_deprecated_template_dir}/"*; do
             if [ -f "${deprecated_template_name}" ]; then
                 local config_deprecated_template_name="${deprecated_template_name}"
@@ -94,23 +96,25 @@ update_config_dir(){
                 debug_ "Template ${config_deprecated_template_name} potentiellement obsolète, vérification du contenu"
                 local config_deprecated_template_path="${config_deprecated_template_path}/${config_deprecated_template_name}"
                 #compare trim_file "${config_deprecated_template_path}"
-                if diff -q -w -B "${config_deprecated_template_path}" "${config_deprecated_template_dir}/${deprecated_template_name}" > /dev/null; then
+                if diff -q -w -B "${config_deprecated_template_path}" "${config_deprecated_template_dir}/${deprecated_template_name}"; then
                     local lib_template_path="${lib_dir}/templates/${deprecated_template_name}"
                     [[ ! -f "${lib_template_path}" ]] && {
                         fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
                         continue
                     }
                     lout "Template obsolète détecté dans ${config_deprecated_template_path}, mise à jour du template"
-                    # rm "${config_deprecated_template_path}" || {
-                    #     fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
-                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
-                    #     continue
-                    # }
-                    cp "${lib_template_path}" "${config_deprecated_template_path}" || {
+                    rm "${config_deprecated_template_path}" || {
                         fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
                         fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
                         continue
                     }
+                    # Note : la copie de tous les templates se fait après la boucle, pas besoin de la faire ici
+                    #
+                    # cp "${lib_template_path}" "${config_deprecated_template_path}" || {
+                    #     fout "Impossible de supprimer le template ${$config_deprecated_template_path}"
+                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_deprecated_template_path}"
+                    #     continue
+                    # }
 
                 else
                     debug_ "Template ${config_deprecated_template_name} n'est pas obsolète, son contenu diffère"
@@ -120,22 +124,37 @@ update_config_dir(){
             fi
         done
 
-        # A CODER
-        # --- delete deprecated cmd ---
-        
-        # ---
-
         debug_ "Copie des templates pour ${project_type}"
         if ! rsync -q --ignore-existing --no-dirs "${lib_dir}/templates/"* "${config_template_dir}/"; then
             wout "Les templates n'ont pas pu être créés"
         fi
 
+        # --- create/replace deprecated cmd ---
+        # FONCTION A TESTER
         if [[ ! -f $config_docker_cmd ]]; then
             debug_ "Copie du script de commande docker pour ${project_type}"
-            ! cp "${lib_docker_cmd}" "${config_docker_cmd}"\
-                && wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."\
-                && wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"\
-                && continue
+            cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
+                fout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."
+                wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"
+                wout "cp ${lib_docker_cmd} ${config_docker_cmd}"
+            }
+        else
+            debug_ "Nettoyage du script docker de l'utilisateur"
+            local lib_deprecated_docker_cmd="${lib_dir}/deprecated.cmd.docker.sh"
+            if [[ -f "${lib_deprecated_docker_cmd}" ]]; then
+                debug_ "Test du contenu de ${config_docker_cmd}"
+                if diff -q -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}"); then
+                    debug_ "Script obsolète, remplacement..."
+                    cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
+                        fout "Impossible de remplacer le script de configuration : ${lib_docker_cmd} > ${config_docker_cmd}"
+                        wout "Remplacez le fichier manuellement, le script actuel est obsolète : cp ${lib_docker_cmd} ${config_docker_cmd}"
+                    }
+                else
+                    debug_ "Les fichiers '${config_docker_cmd}' et '${lib_deprecated_docker_cmd}' sont similaires, aucune mise à jour nécéssaire."
+                fi
+            else
+                debug_ "Aucun script obsolète trouvé pour ${project_type}, le script actuel reste inchangé"
+            fi
         fi
     done
 

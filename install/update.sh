@@ -80,7 +80,7 @@ sudo mv "${INSTALL_DIR}" "${BACKUP_DIR}"
 sudo mkdir -p "${INSTALL_DIR}"
 
 lout "décompression de l'archive"
-sudo tar -xzf "${TEMP_DIR_ARCHIVE}" -C "${INSTALL_DIR}" || {
+sudo tar -xzf "${TEMP_DIR_ARCHIVE}" --exclude='test' -C "${INSTALL_DIR}" || {
     fout "Impossible de décompresser l'archive, elle n'est peut être pas au format .tar.gz, ou peut-être corrompue."
     recover_last_version
     eout "La mise a jour a échoué."

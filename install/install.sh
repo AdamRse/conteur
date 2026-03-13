@@ -4,7 +4,7 @@
 
 # -- VARIABLES GLOBALES
 INSTALL_SCRIPT_PATH="$(readlink -f "$0")"
-ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
+ROOT_DIR="$(dirname "$(dirname "${INSTALL_SCRIPT_PATH}")")"
 
 COMMAND_NAME=""
 VERSION=""
@@ -63,7 +63,8 @@ sudo rsync -r --exclude="{
     '.git',
     '.gitignore',
     'install/install.sh',
-    'install/dev.install.sh'
+    'install/dev.install.sh',
+    'test'
     }" "${ROOT_DIR}/"* "${INSTALL_DIR}/"
 
 sout "Fichiers copiés avec succès."
