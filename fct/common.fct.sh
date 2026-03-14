@@ -1,10 +1,21 @@
 # return null|string
 check_packages_requirements() {
+    local licence_path="${ROOT_DIR}/LICENSE"
+
+    [ -z "${ROOT_DIR}" ] && eout "check_packages_requirements() : La variable globale ROOT_DIR n'est pas initialisée"
+    [ ! -f "${licence_path}" ] && eout "Utilisation non autorisée"
+    if ! grep -qF "Adam Rousselle" "${licence_path}" || ! grep -qF "This program is free software" "${licence_path}" || ! grep -qF "www.gnu.org/licenses/gpl-3.0.txt" "${licence_path}"; then
+        eout "Svp utilisez la licence :("
+    fi
+
     if ! command -v docker &> /dev/null; then
         eout "Docker n'est pas installé"
     fi
     if ! command -v curl &> /dev/null; then
         eout "curl n'est pas installé"
+    fi
+    if ! command -v rsync &> /dev/null; then
+        eout "rsync n'est pas installé. Installez-le avec: sudo apt install rsync"
     fi
     if ! command -v jq &> /dev/null; then
         eout "jq n'est pas installé. Installez-le avec: sudo apt install jq"
@@ -45,9 +56,10 @@ convert_pseudo_bool(){
 }
 
 # return message+true|exit
-create_config_dir(){
-    [ -z "${JSON_CONFIG}" ] && eout "create_config_dir() : Le JSON de configuration n'est pas initialisé."
-    [ -z "${CONFIG_DIR}" ] && eout "La variable globale \$CONFIG_DIR n'est pas initialisée."
+update_config_dir(){
+    [ -z "${ROOT_DIR}" ] && eout "update_config_dir() : La variable globale ROOT_DIR n'est pas initialisée."
+    [ -z "${JSON_CONFIG}" ] && eout "update_config_dir() : Le JSON de configuration n'est pas initialisé."
+    [ -z "${CONFIG_DIR}" ] && eout "update_config_dir() : La variable globale CONFIG_DIR n'est pas initialisée."
     check_json_config_integrity "${JSON_CONFIG}"
 
     lout "Création du répertoire de configuration"
@@ -56,23 +68,110 @@ create_config_dir(){
     [[ -z "${project_list}" ]] && fout "Aucun type de projet trouvé à partir du json de configuration." && return 1
 
     for project_type in $project_list; do
-        local lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
-        local template_dir="${lib_dir}/templates"
-        local docker_example_path=""
-        local docker_example_template_all="${ROOT_DIR}/config/cmd.docker.all.example"
-        local docker_example_template_specific="${ROOT_DIR}/config/cmd.docker.${project_type}.example"
-        [ -f "${docker_example_template_all}" ] && docker_example_path="${docker_example_template_all}"
-        [ -f "${docker_example_template_specific}" ] && docker_example_path="${docker_example_template_specific}"
+        local lib_dir="${ROOT_DIR}/lib/${project_type}"
+        local lib_docker_cmd="${lib_dir}/cmd.docker.sh"
+        local config_lib_dir="$(clean_path_variable "absolute" "${CONFIG_DIR}/${project_type}")"
+        local config_docker_cmd="${config_lib_dir}/cmd.docker.sh"
+        local config_template_dir="${config_lib_dir}/templates"
+        local lib_template_dir="${lib_dir}/templates"
+        local lib_deprecated_template_dir="${lib_template_dir}/deprecated"
+        debug_ "--- résumées des variables de config ----\n\tlib_dir : ${lib_dir}\n\tlib_docker_cmd : ${lib_docker_cmd}\n\tconfig_lib_dir : ${config_lib_dir}\n\tconfig_docker_cmd: ${config_docker_cmd}\n\tconfig_template_dir : ${config_template_dir}\n\tlib_deprecated_template_dir : ${lib_deprecated_template_dir}\n\t-------------"
 
         debug_ "Création des répertoires template custom pour les projets de type ${project_type}"
-        ! mkdir -p "${template_dir}" && fout "Impossible de créer le répertoire de config '${template_dir}', vérifier les permissions" && return 1
-        if [ -f "${docker_example_path}" ]; then
-            cp "${docker_example_path}" "${lib_dir}/cmd.docker.sh" || wout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${lib_dir}' a échoué"
+        if ! mkdir -p "${config_template_dir}"; then
+            fout "Impossible de créer le répertoire de config '${config_template_dir}', vérifier les permissions"
+            return 1
+        fi
+        
+
+        # --- delete deprecated templates ---
+        # FONCTION A TESTER
+        debug_ "Nettoyage des templates obsolètes pour ${project_type}"
+        for lib_deprecated_template_path in "${lib_deprecated_template_dir}/"*; do
+            local deprecated_template_name="$(basename "${lib_deprecated_template_path}")"
+            if [ -f "${lib_deprecated_template_path}" ]; then
+                local config_deprecated_template_name="${deprecated_template_name}"
+                local lib_template_path="${lib_template_dir}/${deprecated_template_name}"
+                [[ ! -f "${lib_template_path}" ]] && {
+                    fout "Impossible de remplacer le template ${deprecated_template_name}, le modèle plus récent n'a pas le même nom. Fichier attendu : '${lib_template_path}'"
+                    continue
+                }
+                [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name%.template}"
+                [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && config_deprecated_template_name="${deprecated_template_name}.template"
+                [[ ! -f "${config_template_dir}/${config_deprecated_template_name}" ]] && {
+                    debug_ "Template ${deprecated_template_name} introuvable dans les fichiers de config de l'utilisateur"
+                    continue
+                }
+                local config_template_path="${config_template_dir}/${config_deprecated_template_name}"
+
+                if diff -q -w -B "${config_template_path}" "${lib_deprecated_template_path}" >/dev/null; then
+                    lout "Template obsolète détecté dans ${config_template_path}, mise à jour du template"
+                    rm "${config_template_path}" || {
+                        fout "Impossible de supprimer le template ${$config_template_path}"
+                        fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_template_path}"
+                        continue
+                    }
+                    # Note : la copie de tous les templates se fait après la boucle, pas besoin de la faire ici
+                    #
+                    # cp "${lib_template_path}" "${config_template_path}" || {
+                    #     fout "Impossible de supprimer le template ${$config_template_path}"
+                    #     fout "Notez qu'il y a un meilleur template disponible dans ${lib_template_path} pour remplacer ${$config_template_path}"
+                    #     continue
+                    # }
+
+                else
+                    debug_ "Template ${config_deprecated_template_name} n'est pas obsolète, son contenu diffère"
+                    continue
+                fi
+            else
+                debug_ "Le fichier ${deprecated_template_name} n'existe pas"
+            fi
+        done
+
+        debug_ "Copie des templates pour ${project_type}"
+        if ! rsync -q --ignore-existing --no-dirs "${lib_template_dir}/"* "${config_template_dir}/"; then
+            wout "Les templates n'ont pas pu être créés"
+        fi
+
+        # --- create/replace deprecated cmd ---
+        # FONCTION A TESTER
+        if [[ ! -f $config_docker_cmd ]]; then
+            debug_ "Copie du script de commande docker pour ${project_type}"
+            cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
+                fout "La copie de l'exemple de commande 'cmd.docker.sh' dans '${config_lib_dir}' a échoué."
+                wout "Attention, Il faudra écrire un script de création de projet ${project_type} avec docker, dans '${config_docker_cmd}'"
+                wout "cp ${lib_docker_cmd} ${config_docker_cmd}"
+            }
+        else
+            debug_ "Nettoyage du script docker de l'utilisateur"
+            local lib_deprecated_docker_cmd="${lib_dir}/deprecated.cmd.docker.sh"
+            if [[ -f "${lib_deprecated_docker_cmd}" ]]; then
+                debug_ "Test du contenu de ${config_docker_cmd}"
+                if diff -q -w -B <(trim_file "${config_docker_cmd}") <(trim_file "${lib_deprecated_docker_cmd}") >/dev/null; then
+                    debug_ "Script obsolète, remplacement..."
+                    cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
+                        fout "Impossible de remplacer le script de configuration : ${lib_docker_cmd} > ${config_docker_cmd}"
+                        wout "Remplacez le fichier manuellement, le script actuel est obsolète : cp ${lib_docker_cmd} ${config_docker_cmd}"
+                    }
+                else
+                    debug_ "Les fichiers '${config_docker_cmd}' et '${lib_deprecated_docker_cmd}' sont similaires, aucune mise à jour nécéssaire."
+                fi
+            else
+                debug_ "Aucun script obsolète trouvé pour ${project_type}, le script actuel reste inchangé"
+            fi
         fi
     done
-    {
-        echo "${JSON_CONFIG}" > "${CONFIG_DIR}/config.json"
-    } || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${CONFIG_DIR}'"
+
+    local config_dir_json="${CONFIG_DIR}/config.json"
+    if [[ ! -f $config_dir_json ]]; then
+        debug_ "Création du json de configuration"
+        echo "${JSON_CONFIG}" > "${config_dir_json}" || wout "La création du json de configuration de base n'a pas fonctionné. Vérifiez les droits de lecture et d'écriture de '${config_dir_json}'"
+    fi
+
+    cat "${ROOT_DIR}/config/examples/.env.example" > "${CONFIG_DIR}/.env.example" || {
+        touch "${CONFIG_DIR}/.env.example"
+        wout "Impossible de trouver l'exemple du .env dans '${CONFIG_DIR}'. Le fichier .env.example a été créé sans modèle."
+    }
 
     return 0
 }
@@ -140,7 +239,7 @@ set_check_globals(){
     # CONFIG_DIR
     if [ ! -d "${CONFIG_DIR}" ]; then
         if ask_yn "Le répertoire de configuration '${CONFIG_DIR}' n'existe pas ou n'est pas accessible. Tenter de le créer ?"; then
-            create_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
+            update_config_dir || eout "Impossible de créer le répertoire de configuration. Vérifiez les droits d'accès pour la création de '${CONFIG_DIR}'"
         else
             wout "Paramétrer le répertoire de configuration avec la variable CONFIG_DIR dans '${ROOT_DIR}'/.env\n\tOu rendez le répertoire '${CONFIG_DIR}' accessible à l'écriture."
             wout "Sans répertoire de configuration, ${COMMAND_NAME} ne fonctionnera qu'avec les templates et valeurs par défaut."
@@ -160,19 +259,44 @@ set_check_globals(){
         CUSTOM_TEMPLATE_DIR=""
     fi
 
-    # DOCKER COMMAND
-    DOCKER_CMD_PATH="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
+    # DOCKER_CMD_PATH
+    local lib_docker_cmd="${ROOT_DIR}/lib/${PROJECT_TYPE}/cmd.docker.sh"
     local custom_docker_cmd="${CONFIG_DIR}/${PROJECT_TYPE}/cmd.docker.sh"
-    local example_docker_cmd="${ROOT_DIR}/config/cmd.docker.${PROJECT_TYPE}.example"
-    [ ! -f "${example_docker_cmd}" ] && example_docker_cmd="${ROOT_DIR}/config/cmd.docker.all.example"
+    [[ ! -f $lib_docker_cmd ]] && eout "set_check_globals() : Bibliothèque ${PROJECT_TYPE} mal structurée, fichier de commande docker introuvable dans '${lib_docker_cmd}'"
 
-    if [ -f "${example_docker_cmd}" ] && [ -s "${custom_docker_cmd}" ]; then
-        debug_ "Commande personnalisée trouvée dans '${CONFIG_DIR}', test de son contenu"
-        if [ ! -f "${example_docker_cmd}" ] || ! diff -q -b -B "${example_docker_cmd}" "${custom_docker_cmd}" > /dev/null; then
+    DOCKER_CMD_PATH="${lib_docker_cmd}"
+    if [[ -f $custom_docker_cmd ]]; then
+        if is_code_file "${custom_docker_cmd}"; then
+            lout "Chargement du script utilisateur : ${custom_docker_cmd}"
             DOCKER_CMD_PATH="${custom_docker_cmd}"
-            lout "Script personnalisé de création de projet chargé depuis les fichiers de configuration"
+        else
+            wout "Le script utilisateur est existant mais ignoré. Aucun code n'a été trouvé dans le fichier.\nVérifier le script utilisateur '${custom_docker_cmd}'"
         fi
+    else
+        wout "Chargement du script par défaut de la bibliothèque ${PROJECT_TYPE}, le script utilisateur est introuvable dans '${custom_docker_cmd}'"
     fi
+}
+
+# retourne le contenu d'un fichier débarassé d'espaces et commentaires
+# $1    : file_path : Chemin absolu du fichier
+# return text|false
+trim_file(){
+    local file_path="${1}"
+    [[ ! -f $file_path ]] && eout "trim_file() : Le fichier '${file_path}' n'existe pas ou inaccessible" && return 1
+
+    sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "${file_path}"
+}
+
+# détecte si un fichier contient du code bash
+# return true|false
+is_code_file(){
+    local file_path="${1}"
+    [[ ! -f $file_path ]] && eout "is_code_file() : Le fichier '${file_path}' n'existe pas ou inaccessible" && return 1
+
+    if grep -qvE '^[[:space:]]*([#]|$)' "$file_path"; then
+        return 0
+    fi
+    return 1
 }
 
 # return bool
@@ -180,7 +304,7 @@ is_json_var(){
     local json_test="${1}"
     [ -z "${json_test}" ] && eout "is_json_var() : Aucun paramètre passé"
 
-    if ! jq -e . <<< "$json_test" >/dev/null 2>&1; then
+    if ! jq -e . <<< "${json_test}" >/dev/null 2>&1; then
         return 1
     fi
     return 0
@@ -227,9 +351,12 @@ check_json_config_integrity(){
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
     debug_ "Vérification du contenu logique"
-    local has_project=$(jq ".projects.${PROJECT_TYPE}" <<< "$json_test")
-    if [ "$has_project" == "null" ]; then
-        eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
+
+    if [ -n "${PROJECT_TYPE}" ]; then # Si vide, est appelé par un autre script, comme install
+        local has_project=$(jq ".projects.${PROJECT_TYPE}" <<< "$json_test")
+        if [ "$has_project" == "null" ]; then
+            eout "check_json_config_integrity() : Le type de projet '${PROJECT_TYPE}' est absent du JSON."
+        fi
     fi
 
     # Plus de vérifications logique à faire
@@ -474,80 +601,4 @@ find_template_from_name() {
         wout "find_template_from_name() : Aucun template trouvé pour '${name}'"
         return 1
     fi
-}
-
-update_conteur(){
-    local update_script_path="${ROOT_DIR}/install/update.sh"
-    [ -z "${ROOT_DIR}" ] && eout "update_conteur() : La variable globale ROOT_DIR doit être initialiser avant l'apel de la fonction."
-    [ ! -f "${update_script_path}" ] && eout "update_conteur() : Le script de mise à jour est introuvable."
-    
-    wout "Feature à venir prochainement, une V1.0 doit être en mode release pour tester cette fonctionnalité"
-    # source "${update_script_path}"
-    exit 0
-}
-show_version() {
-    [ -z "${COMMAND_NAME}" ] && eout "show_version() : La variable gloale COMMAND_NAME n'est pas initialisée"
-    [ -z "${VERSION}" ] && eout "show_version() : La variable gloale VERSION n'est pas initialisée"
-
-    echo -e "-------------------------------------------\n[version]\t${COMMAND_NAME} version ${VERSION}-------------------------------------------"
-}
-show_summary() {
-    local BOLD='\033[1m'
-    local COLOR_2='\033[0;32m'
-    local COLOR_3='\033[1;33m'
-    local NC='\033[0m'
-    
-    # --- PARAMÈTRES DE TAILLE ---
-    local width=70
-    local label_width=25
-    # ----------------------------
-    
-    print_table_row() {
-        local label=$1
-        local value=$2
-        
-        # Construction de la partie gauche fixe
-        local left_part=$(printf "  %-*s : " "$label_width" "$label")
-        
-        # Calcul du remplissage dynamique pour la bordure droite
-        local used_space=$((${#left_part} + ${#value}))
-        local padding=$((width - used_space))
-        
-        # Sécurité si la valeur est trop longue
-        [[ $padding -lt 0 ]] && padding=0
-
-        printf "${COLOR_2}│${NC}%s${COLOR_2}%s%*s│${NC}\n" "$left_part" "$value" "$padding" ""
-    }
-
-    # Bordure haute
-    echo -e "${COLOR_2}┌$(printf '─%.0s' $(seq 1 $width))┐${NC}"
-    
-    # Titre centré dynamiquement
-    local title="RÉSUMÉ DE LA CONFIGURATION"
-    local title_len=${#title}
-    local title_space=$(( (width - title_len) / 2 ))
-    local title_res=$(( (width - title_len) % 2 )) # Pour gérer les nombres impairs
-    printf "${COLOR_2}│${NC}%*s${BOLD}${COLOR_3}%s${NC}%*s${COLOR_2}│${NC}\n" "$title_space" "" "$title" "$((title_space + title_res))" ""
-    
-    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
-    
-    # Lignes du tableau
-    print_table_row "Nom du projet" "${PROJECT_NAME}"
-    print_table_row "Type d'application" "${PROJECT_TYPE}"
-    print_table_row "Répertoire racine" "${PROJECTS_DIR}"
-
-    echo -e "${COLOR_2}├$(printf '─%.0s' $(seq 1 $width))┤${NC}"
-    
-    # Chemin complet
-    echo -e "${COLOR_2}│${NC}  ${BOLD}Chemin complet :${NC}$(printf '%*s' $((width - 18)) "")${COLOR_2}│${NC}"
-    
-    local path_display="${PROJECT_PATH}"
-    if [ ${#path_display} -gt $((width - 4)) ]; then
-        path_display="...${path_display: -$((width - 7))}"
-    fi
-    local path_pad=$((width - ${#path_display} - 2))
-    echo -e "${COLOR_2}│${NC}  ${path_display}$(printf '%*s' $path_pad "")${COLOR_2}│${NC}"
-    
-    # Bordure basse
-    echo -e "${COLOR_2}└$(printf '─%.0s' $(seq 1 $width))┘${NC}"
 }

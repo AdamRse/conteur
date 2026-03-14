@@ -4,3 +4,5 @@ readme-IA-update.md
 chanlog.md
 .env
 install/conteur.tar.gz
+install/dev.install.sh
+.debug

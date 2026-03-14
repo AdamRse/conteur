@@ -1,18 +1,24 @@
 #!/bin/bash
 
+# Le script doit être appelé sans contexte
+
 # -- VARIABLES GLOBALES
 INSTALL_SCRIPT_PATH="$(readlink -f "$0")"
-ROOT_DIR="$(dirname "$(dirname "$INSTALL_SCRIPT_PATH")")"
+ROOT_DIR="$(dirname "$(dirname "${INSTALL_SCRIPT_PATH}")")"
 
 COMMAND_NAME=""
 VERSION=""
 CONFIG_DIR=""
-
+INSTALL_DIR=""
+BIN_LINK=""
+DEBUG_MODE=true
+USER_NAME=""
+USER_MAIN_GROUP=""
+USER_HOME=""
 source "${ROOT_DIR}/src/vars.sh" || exit 1
-INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
-BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
 
 source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
+source "${ROOT_DIR}/fct/core.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 # -- CONDITIONS
@@ -27,10 +33,6 @@ fi
 
 check_packages_requirements
 
-USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-[ ! -d "${USER_HOME}" ] && USER_HOME="/home/$SUDO_USER"
-[ ! -d "${USER_HOME}" ] && USER_HOME="$HOME"
-[ ! -d "${USER_HOME}" ] && eout "Impossible de déterminer le répertoire HOME de l'utilisateur pour initialiser les fichiers de configuration."
 CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
 
 # -- INSTALLATION
@@ -49,23 +51,43 @@ if [[ -d "${INSTALL_DIR}" ]]; then
     [[ -f "${INSTALL_DIR}/.env" ]] && env_tmp_path="/tmp/${COMMAND_NAME}.env_$(cat /proc/sys/kernel/random/uuid)" && cp "${INSTALL_DIR}/.env" "${env_tmp_path}"
     rm -rf "${INSTALL_DIR}"
 fi
-mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
-[[ -f "${env_tmp_path}" ]] && mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
 
+debug_ "Création de ${INSTALL_DIR} pour copier les fichiers"
+sudo mkdir -p "${INSTALL_DIR}" || fout "Impossible de créer ${INSTALL_DIR}"
+[[ -f "${env_tmp_path}" ]] && sudo mv "${env_tmp_path}" "${INSTALL_DIR}/.env"
+
+debug_ "Copie de l'architecture ${INSTALL_DIR} pour copier les fichiers"
 lout "Synchronisation des fichiers..."
-rsync -r --exclude={'.git', '.gitignore', 'install/install.sh'} "${ROOT_DIR}/." "${INSTALL_DIR}/"
+
+sudo rsync -r --exclude="{
+    '.git',
+    '.gitignore',
+    'install/install.sh',
+    'install/dev.install.sh',
+    'test'
+    }" "${ROOT_DIR}/"* "${INSTALL_DIR}/"
+
 sout "Fichiers copiés avec succès."
 
 lout "Configuration des permissions..."
-find "${INSTALL_DIR}" -type d -exec chmod 751 {} +
-find "${INSTALL_DIR}" -type f -exec chmod 644 {} +
-chmod +x "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${INSTALL_DIR}/install/update.sh"
+if ! set_permissions; then
+    fout "Impossible de paramétrer les permission de base, attention ${COMMAND_NAME} ne sera pas executable !!!"
+    # fout "---------"
+    # fout "Veillez paramétrer manuellement les permissions :"
+    # fout "- répertoires ${INSTALL_DIR} : execution"
+    # fout "- fichiers ${INSTALL_DIR} : lecture"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates : lecture+execution"
+    # fout "- répertoires ${INSTALL_DIR}/lib/*/templates/deprecated : lecture+execution"
+    # fout "- ${INSTALL_DIR}/${COMMAND_NAME}.sh : lecture+execution"
+    # fout "---------"
+    sleep 2
+fi
 
 lout "Création du lien symbolique dans /usr/local/bin..."
 if [[ -L "${BIN_LINK}" ]]; then
     rm "${BIN_LINK}"
 fi
-ln -s "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${BIN_LINK}" || fout "Échec de création du lien symbolique."
+sudo ln -s "${INSTALL_DIR}/${COMMAND_NAME}.sh" "${BIN_LINK}" || fout "Échec de création du lien symbolique."
 
 
 # -- SUCCESS
@@ -78,7 +100,13 @@ fi
 
 if ask_yn "Créer les fichiers de configuration de l'utilisateur dans '${CONFIG_DIR}' ?"; then
     lout "Création des fichiers de configuration dans '${CONFIG_DIR}'"
-    create_config_dir
+    update_config_dir
+    if [ -n "${USER_NAME}" ] && [ -n "${USER_MAIN_GROUP}" ]; then
+        sudo chown -R "${USER_NAME}:${USER_MAIN_GROUP}" "${CONFIG_DIR}"
+    else
+        wout "Impossible de trouver le nom d'utilisateur ou son groupe principal, pour paramétrer les droits d'accès aux fichiers de config."
+        wout "Veuillez donner les bon droits au fichier de configurations utilisateur dans '${CONFIG_DIR}'"
+    fi
 else
     wout "Les fichiers de configuration ne sont pas installés."
 fi

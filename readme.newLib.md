@@ -7,7 +7,8 @@ Il est très conseillé de s'inspirer de `./lib/laravel` pour comprendre le fonc
 lib/<nouveau_type>/
 ├── cmd.docker.sh
 ├── main.lib.sh 
-└── templates
+└── templates/
+    ├── deprecated/
     ├── docker-compose.yml.template # Exemple de templates par défaut
     ├── Dockerfile.template
     └── nginx.conf.template
@@ -15,6 +16,7 @@ lib/<nouveau_type>/
 - `cmd.docker.sh` Ensemble commandes pour créer le nouveau projet avec des technologies à jour.
 - `main.lib.sh ` Script qui défini des variables globales liées au type de projet et qui executera `cmd.docker.sh`. Doit contenir la fonction `create_project()` qui sera appelée par conteur.
 - `templates` Répertoire où sont stockés les templates par défaut, si l'utilisateur n'a pas créé de templates personnalisés.
+- `deprecated` Répertoire où sont stockés les templates obsolètes. Ils servent à remplacer les templates de l'utilisateur si celui-ci ne les a pas personnalisés dans son répertoire de configuration.
 > [!NOTE]
 > Le nom des templates est important, il donnera son nom aux fichiers générés si l'utilisateur ne les définis pas
 ### default.json
@@ -96,4 +98,4 @@ Aperçu complet de l'exemple :
 ### Ajouter un exemple pour l'utilisateur
 L'utilisateur peut avoir besoin de personnaliser la commande `cmd.docker.sh`. Pour l'aider, un fichier sera généré dans son dossier de configuration, et vous pouvez en préciser l'utilisation avec des commentaires. Par exemple pour spécifier les variables globales rendues disponibles par votre nouvelle bibliothèque. 
 
-Vous n'avez qu'à créer un fichier `./config/cmd.docker.<nouveau_type>.example`, remplacez `<nouveau_type>` par le nom exact de votre bibliothèque dans le json `config/default.json`. 
+Vous n'avez qu'à créer un fichier `./config/examples/cmd.docker.<nouveau_type>.example`, remplacez `<nouveau_type>` par le nom exact de votre bibliothèque dans le json `config/default.json`. 

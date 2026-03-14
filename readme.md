@@ -1,8 +1,9 @@
 # Conteur
 
-**Version 1.0** | Licence GPL 3.0 | Par Adam Rousselle
+**Version 1.1** | Licence GPL 3.0 | Par Adam Rousselle
 
-Conteur est un outil en ligne de commande pour créer des projets web dockerisés avec les dernières technologies disponibles. Sa particularité : générer ses propres fichiers dans le projet à partir de templates dynamiques personnalisables.
+Conteur est un outil en ligne de commande pour créer des projets web dockerisés avec les dernières technologies disponibles. Sa particularité : générer ses propres fichiers dans le projet à partir de templates dynamiques personnalisables.  
+Le projet n'est pas vibe-codé mais utilise l'IA ponctuellement à des fins de conseils, débug, rédaction.
 
 ## État du projet
 
@@ -26,7 +27,12 @@ sudo ./install/install.sh
 
 Le programme s'installera dans `/usr/local/share/conteur` avec un lien symbolique dans `/usr/local/bin/`.
 
-> **Note** : La fonctionnalité d'auto-update sera disponible en version 1.1
+### Désinstallation
+
+Pour désinstaller Conteur, exécutez en tant que root :
+```bash
+sudo ./install/remove.sh
+```
 
 ## Utilisation
 
@@ -42,8 +48,8 @@ conteur [OPTIONS] [NOM_PROJET]
 | `-h, --help` | Afficher l'aide |
 | `-l, --laravel` | **[Obligatoire]** Créer un projet Laravel |
 | `-P, --path [DIR]` | Spécifier le répertoire de destination du projet |
-| `-U, --update` | Effectuer une mise à jour |
-| `-V, --version` | Afficher la version |
+| `-U, --update` | Effectuer une mise à jour *(experimental)* |
+| `-V, --version` | Afficher la version actuelle |
 | `--debug` | Activer le mode debug (plus verbeux) |
 | `--no-confirm` | Ignorer la demande de confirmation des paramètres |
 
@@ -57,6 +63,16 @@ conteur --laravel mon_projet
 Créer un projet Laravel dans un répertoire spécifique :
 ```bash
 conteur -lP "/home/user/projects" mon_projet
+```
+
+Vérifier la version installée :
+```bash
+conteur --version
+```
+
+Mettre à jour Conteur :
+```bash
+conteur --update
 ```
 
 ## Configuration
@@ -73,10 +89,11 @@ Le fichier utilisateur a la priorité et fusionne avec le fichier par défaut.
 ### Structure de configuration utilisateur
 ```
 ~/.config/conteur/
+├── .env
 ├── config.json
 └── laravel/
-    ├── cmd.docker.sh (optionnel)
-    └── templates/ (optionnel)
+    ├── cmd.docker.sh
+    └── templates/
         ├── docker-compose.yml
         └── Dockerfile
 ```
@@ -128,6 +145,8 @@ Voici un exemple de `config.json` pour Laravel :
 2. Nommez-le avec l'extension `.template` (ex: `Dockerfile.template`)
 3. Utilisez des variables bash dans le template : `$VARIABLE` ou `${VARIABLE}`
 4. Déclarez le template dans votre `config.json`
+
+> **Note** : Certains templates et commandes ont été nettoyés en version 1.1. Consultez `lib/laravel/readme.md` pour la liste des éléments supprimés.
 
 ### Variables disponibles
 
@@ -227,7 +246,11 @@ Conteur recherche les templates dans cet ordre :
 Pour personnaliser la création du projet Docker, créez le fichier :
 `~/.config/conteur/laravel/cmd.docker.sh`
 
-Toutes les variables globales de Conteur y sont disponibles. Consultez `config/cmd.docker.laravel.example` pour un exemple commenté.
+Toutes les variables globales de Conteur y sont disponibles. Consultez `config/examples/cmd.docker.laravel.example` pour un exemple commenté.
+
+## Tests
+
+Des scripts de test dans un environnement Docker sont disponibles dans le répertoire `./test`.
 
 ## Dépannage
 
