@@ -13,19 +13,26 @@ Le projet n'est pas vibe-codé mais utilise l'IA ponctuellement à des fins de c
 ## Installation
 
 ### Prérequis
-- Linux (Ubuntu 24 ou similaire)
+- Linux (Testé sous debian et ubuntu)
 - Accès root
+- Dépendances :
+  - Docker
+  - curl
+  - rsync
+  - jq
+  - diffutils (installé par défaut sur la plupart des distrubtions)
+  - gettext-base (installé par défaut sur la plupart des distrubtions)
 
 ### Procédure
 
-1. Téléchargez l'archive depuis [les releases GitHub](https://github.com/votre-repo/conteur/releases)
+1. Téléchargez l'archive depuis [les releases GitHub](https://github.com/AdamRse/conteur/releases/tag/v1.1)
 2. Extrayez l'archive
 3. Exécutez le script d'installation en tant que root :
 ```bash
 sudo ./install/install.sh
 ```
 
-Le programme s'installera dans `/usr/local/share/conteur` avec un lien symbolique dans `/usr/local/bin/`.
+Le programme s'installera dans `/usr/local/share/conteur` avec un lien symbolique dans `/usr/local/bin/`. Ces paramètres sont spécifiées dans `./src/vars.sh`
 
 ### Désinstallation
 
