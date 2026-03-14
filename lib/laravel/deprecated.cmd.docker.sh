@@ -1,0 +1,2 @@
+# en cas de nouvelle commande lib/laravel/cmd.docker.sh, ajouter l'ancienne commande à ce fichier pour spécifier qu'elle est obsolète.
+# Par défaut les commandes ne sont pas remplacées, pour le cas où l'utilisateur a son propre script
