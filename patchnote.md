@@ -1,3 +1,9 @@
+# V1.2
+
+## Features
+
+## Fixes
+
 # V1.1
 
 ## Features

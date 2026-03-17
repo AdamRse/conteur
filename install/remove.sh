@@ -14,17 +14,13 @@ source "${ROOT_DIR}/fct/terminal-tools.fct.sh" || exit 1
 source "${ROOT_DIR}/fct/common.fct.sh" || exit 1
 
 remove_config_dir(){
-    USER_HOME=$(getent passwd "${SUDO_USER}" | cut -d: -f6)
-    [ ! -d "${USER_HOME}" ] && USER_HOME="/home/${SUDO_USER}"
-    [ ! -d "${USER_HOME}" ] && USER_HOME="${HOME}"
-    [ ! -d "${USER_HOME}" ] && {
-        fout "Impossible de déterminer le répertoire HOME de l'utilisateur."
+    [[ -z "${COMMAND_NAME}" ]] && eout "remove_config_dir() : La variable globale COMMAND_NAME n'est pas initialisée." && return 1
+    [[ ! -d "${CONFIG_DIR}" ]] && wout "remove_config_dir() : Le répertoire de configuration utilisateur est introuvable dans '${CONFIG_DIR}'" && return 0
+    [[ "${CONFIG_DIR}" != */"${COMMAND_NAME}" ]] && {
+        eout "Le répertoire '${CONFIG_DIR}' n'est pas valide (devrait se terminer par '/${COMMAND_NAME}'), par sécurité, pour ne pas supprimer un autre répertoire, abandon."
+        eout "Il semble que la valeur CONFIG_DIR dans ${ROOT_DIR}/src/vars.sh ait été modifiée"
         return 1
     }
-
-    CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
-
-    [ ! -d "${CONFIG_DIR}" ] && return 1
 
     if ask_yn "Confirmer la supression de '${CONFIG_DIR}' ?"; then
         rm -rf "${CONFIG_DIR}" && lout "Suppression de '${CONFIG_DIR}' réussie" && return 0

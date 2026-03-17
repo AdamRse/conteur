@@ -8,4 +8,4 @@ USER_HOME="$(getent passwd "${USER_NAME}" | cut -d: -f6)"
 
 INSTALL_DIR="/usr/local/share/${COMMAND_NAME}"
 BIN_LINK="/usr/local/bin/${COMMAND_NAME}"
-CONFIG_DIR="${USER_HOME}/.config/conteur"
+CONFIG_DIR="${USER_HOME}/.config/${COMMAND_NAME}"
