@@ -347,10 +347,10 @@ check_json_config_integrity(){
     [ -z "${json_test}" ] && eout "check_json_config_integrity() : Aucun paramètre passé"
 
 
-    debug_ "Vérification du type de variable JSON"
+    debug_ "Vérification du type de variable pour le JSON de config"
     is_json_var "${json_test}" || eout "check_json_config_integrity() : La variable passée n'est pas un JSON valide."
 
-    debug_ "Vérification du contenu logique"
+    debug_ "Vérification du contenu logique du JSON de config"
 
     if [ -n "${PROJECT_TYPE}" ]; then # Si vide, est appelé par un autre script, comme install
         local has_project=$(jq ".projects.${PROJECT_TYPE}" <<< "$json_test")
@@ -359,7 +359,6 @@ check_json_config_integrity(){
         fi
     fi
 
-    # Plus de vérifications logique à faire
     return 0
 }
 
