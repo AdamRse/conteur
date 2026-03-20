@@ -288,6 +288,7 @@ trim_file(){
 }
 
 # détecte si un fichier contient du code bash
+# $1    : file_path : Chemin absolu du fichier
 # return true|false
 is_code_file(){
     local file_path="${1}"
