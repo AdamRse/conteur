@@ -299,6 +299,8 @@ is_code_file(){
     return 1
 }
 
+# Check si une variable donnée est parsable avec jq
+# $1    : json_test : Chaîne à tester
 # return bool
 is_json_var(){
     local json_test="${1}"
