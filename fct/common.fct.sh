@@ -176,6 +176,7 @@ update_config_dir(){
     return 0
 }
 
+# Check les variables globales dont a besoin conteur pour fonctionner, initialise certaines variables
 # return empty|exit
 set_check_globals(){
     debug_ "check_globals() :
