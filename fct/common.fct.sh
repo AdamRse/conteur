@@ -55,6 +55,7 @@ convert_pseudo_bool(){
     return 0
 }
 
+# Créé ou met à jour le répertoire de configuration de l'utilisateur
 # return message+true|exit
 update_config_dir(){
     [ -z "${ROOT_DIR}" ] && eout "update_config_dir() : La variable globale ROOT_DIR n'est pas initialisée."
