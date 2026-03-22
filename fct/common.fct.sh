@@ -1,3 +1,5 @@
+
+# Check la licence et si les paquets requis sont installés
 # return null|string
 check_packages_requirements() {
     local licence_path="${ROOT_DIR}/LICENSE"
