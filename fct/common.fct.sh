@@ -30,8 +30,8 @@ check_packages_requirements() {
     fi
 }
 
-# Utilisable avec pipe
-# $1 : dir  : chemin absolu du répertoire
+# Check si un répertoire est vide
+# $1|pipe : dir  : chemin absolu du répertoire
 # return bool
 is_empty_dir(){
     local dir="${1-$(cat)}"
@@ -44,6 +44,7 @@ is_empty_dir(){
         return 1
     fi
 }
+
 
 # $1 : weak_type    : arg|pipe    : La variable faiblement typée à interpréter
 # return weak_type+true|empty+false
