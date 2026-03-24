@@ -45,8 +45,8 @@ is_empty_dir(){
     fi
 }
 
-
-# $1 : weak_type    : arg|pipe    : La variable faiblement typée à interpréter
+# Convertit une valeur en booléen
+# $1|pipe : weak_type    : any type : La variable faiblement typée à interpréter
 # return weak_type+true|empty+false
 convert_pseudo_bool(){
     local weak_type="${1:-$(cat)}"
