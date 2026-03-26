@@ -37,6 +37,12 @@ recover_last_version(){
 }
 # ---
 
+pre_script="${ROOT_DIR}/install/pre-script.sh"
+if [[ -f $pre_script ]]; then
+    lout "Chargement du pré-script"
+    source "${pre_script}"
+fi
+
 if [ -f "${CONFIG_DIR}/.env" ]; then
     source "${CONFIG_DIR}/.env"
     lout "Variables d'environement chargées"
@@ -124,5 +130,12 @@ lout "Supression du backup"
 [[ -n "${BACKUP_DIR}" ]] && [[ "${BACKUP_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${BACKUP_DIR}"
 [[ -n "${TEMP_DIR}" ]] && [[ "${TEMP_DIR}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR}"
 [[ -n "${TEMP_DIR_ARCHIVE}" ]] && [[ "${TEMP_DIR_ARCHIVE}" =~ \/conteur.*$ ]] && sudo rm -rf "${TEMP_DIR_ARCHIVE}"
+
+
+post_script="${ROOT_DIR}/install/post-script.sh"
+if [[ -f $post_script ]]; then
+    lout "Chargement du post-script"
+    source "${post_script}"
+fi
 
 sout "Mise a jour v${OLD_VERSION} > v${LATEST_VERSION} terminée avec succès !"

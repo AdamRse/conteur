@@ -282,7 +282,7 @@ set_check_globals(){
     fi
 }
 
-# retourne le contenu d'un fichier débarassé d'espaces et commentaires
+# retourne le contenu d'un fichier débarassé d'espaces et commentaires bash
 # $1    : file_path : Chemin absolu du fichier
 # return text|false
 trim_file(){
