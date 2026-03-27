@@ -86,7 +86,7 @@ update_config_dir(){
             fout "Impossible de créer le répertoire de config '${config_template_dir}', vérifier les permissions"
             return 1
         fi
-        
+
 
         # --- delete deprecated templates ---
         # FONCTION A TESTER
@@ -138,7 +138,6 @@ update_config_dir(){
         fi
 
         # --- create/replace deprecated cmd ---
-        # FONCTION A TESTER
         if [[ ! -f $config_docker_cmd ]]; then
             debug_ "Copie du script de commande docker pour ${project_type}"
             cp "${lib_docker_cmd}" "${config_docker_cmd}" || {
@@ -325,7 +324,7 @@ parse_jq_bool() {
     local filter="$1"
     local data="${2:-$(cat)}"
 
-    echo "$data" | jq -r "$filter | 
+    echo "$data" | jq -r "$filter |
         if . == true or . == \"true\" or . == 1 or . == \"1\" then true
         elif . == false or . == \"false\" or . == 0 or . == \"0\" then false
         else empty
@@ -404,7 +403,7 @@ export_json_config(){
 }
 
 # $1 : mode     : relative|absolute
-# $2 : path     : 
+# $2 : path     :
 # return string : path nettoyé
 clean_path_variable(){
     local mode="${1}"
@@ -587,7 +586,7 @@ find_template_from_name() {
     [ -z "${ROOT_DIR}" ] && eout "find_template_from_name() : La variable globale '\$ROOT_DIR' doit être initialisé"
     [ -z "${PROJECT_TYPE}" ] && eout "find_template_from_name() : La variable globale '\$PROJECT_TYPE' doit être initialisé"
     [ -d "${default_templates_dir}" ] || eout "find_template_from_name() : Le répertoire de templates par défaut est introuvable dans : '${default_templates_dir}'"
-    
+
     local template_path_possibility_by_priorities=(
         "${custom_templates_dir}/${name}.template"
         "${custom_templates_dir}/${name}"
