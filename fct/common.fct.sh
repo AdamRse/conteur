@@ -347,6 +347,7 @@ return_unified_json_bool(){
     fi
 }
 
+# Vérifie basiquement l'intégrité du JSON de configuration
 # $1 : json_test : Chaîne de config JSON à tester
 # return true|exit
 check_json_config_integrity(){
