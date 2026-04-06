@@ -370,6 +370,7 @@ check_json_config_integrity(){
     return 0
 }
 
+# Fusionne le JSON de config par défaut et le JSON de config de l'utilisateur (prioritaire)
 # return JSON|exit
 merge_config_json(){
     local default_path="${ROOT_DIR}/config/default.json"
